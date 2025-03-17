@@ -27,8 +27,8 @@ export function SearchBar() {
   // Initialize speech recognition
   useEffect(() => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognition.current = new SpeechRecognition();
+      const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition.current = new SpeechRecognitionAPI();
       recognition.current.continuous = false;
       recognition.current.interimResults = false;
       
