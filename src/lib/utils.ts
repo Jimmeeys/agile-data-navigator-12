@@ -10,7 +10,7 @@ export function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-export function formatDate(dateString: string | Date): string {
+export function formatDate(dateString: string | Date, format?: string): string {
   if (!dateString) return '';
   
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
@@ -19,11 +19,27 @@ export function formatDate(dateString: string | Date): string {
     return '';
   }
   
+  if (format === 'HH:mm:ss') {
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  }
+  
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
   });
+}
+
+export function parseDate(dateString: string): Date | null {
+  if (!dateString) return null;
+  
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? null : date;
 }
 
 export function getUniqueValues<T>(items: T[], key: keyof T): string[] {
