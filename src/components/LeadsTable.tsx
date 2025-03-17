@@ -283,7 +283,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
       'Not Interested - Pricing Issues': <DollarSign className="h-4 w-4 text-gray-500" />,
       'Not Interested - Timings not suitable': <Clock className="h-4 w-4 text-gray-500" />,
       'Not Interested - Health Issues': <HeartPulse className="h-4 w-4 text-gray-500" />,
-      'Language Barrier - Couldn\'t comprehend or speak the language': <Language className="h-4 w-4 text-gray-500" />,
+      'Language Barrier - Couldn\'t comprehend or speak the language': <Languages className="h-4 w-4 text-gray-500" />,
       'Lead Dropped or Lost': <UserX className="h-4 w-4 text-red-500" />,
       
       // Special cases

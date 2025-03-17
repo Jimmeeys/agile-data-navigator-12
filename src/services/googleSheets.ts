@@ -1,9 +1,6 @@
 import { delay } from '@/lib/utils';
 import Papa from 'papaparse';
 
-// Helper function for artificial delay (for demo purposes)
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
 // Lead interface with follow-up fields
 export interface Lead {
   id: string;
