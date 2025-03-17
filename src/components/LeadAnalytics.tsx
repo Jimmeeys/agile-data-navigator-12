@@ -1,268 +1,116 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLeads } from '@/contexts/LeadContext';
-import { 
-  ChevronDown, 
-  DownloadCloud, 
-  RefreshCw,
-  BarChart4,
-  LineChart,
-  PieChart,
-  Activity,
-  Calendar
-} from 'lucide-react';
-import { 
-  ResponsiveContainer, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  Legend,
-  LineChart as RechartLine,
-  Line,
-  PieChart as RechartPie,
-  Pie,
-  Cell,
-  CartesianGrid,
-  AreaChart,
-  Area
-} from 'recharts';
+import { Button } from '@/components/ui/button';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ArrowUpRight, BarChart2, PieChart as PieChartIcon, TrendingUp, Calendar, Filter, RefreshCw, Download } from 'lucide-react';
 
 export function LeadAnalytics() {
   const { leads } = useLeads();
-  const [chartType, setChartType] = useState('bar');
-  const [xAxis, setXAxis] = useState('source');
-  const [yAxis, setYAxis] = useState('count');
-  const [groupBy, setGroupBy] = useState('month');
+  const [chartType, setChartType] = useState<'bar' | 'line' | 'pie'>('bar');
+  const [xAxis, setXAxis] = useState<string>('status');
+  const [yAxis, setYAxis] = useState<string>('count');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const fieldOptions = [
-    { value: 'source', label: 'Source' },
     { value: 'status', label: 'Status' },
+    { value: 'source', label: 'Source' },
     { value: 'stage', label: 'Stage' },
     { value: 'associate', label: 'Associate' },
-    { value: 'createdAt', label: 'Created Date' }
-  ];
-  
-  const valueOptions = [
-    { value: 'count', label: 'Count' },
-    { value: 'value', label: 'Value ($)' },
-    { value: 'conversion', label: 'Conversion Rate (%)' }
-  ];
-  
-  const timeOptions = [
-    { value: 'day', label: 'Daily' },
-    { value: 'week', label: 'Weekly' },
-    { value: 'month', label: 'Monthly' },
-    { value: 'quarter', label: 'Quarterly' },
-    { value: 'year', label: 'Yearly' }
+    { value: 'createdAtMonth', label: 'Created (Month)', formatter: (date: string) => {
+      return new Date(date).toLocaleDateString('en-US', { month: 'long' });
+    }}
   ];
 
-  const refreshData = () => {
+  const valueOptions = [
+    { value: 'count', label: 'Count' },
+    { value: 'countUnique', label: 'Count Unique' }
+  ];
+
+  const handleRefresh = () => {
     setIsLoading(true);
+    // Simulate loading for demonstration
     setTimeout(() => {
       setIsLoading(false);
     }, 800);
   };
 
-  // Colors for charts
-  const COLORS = ['#4f46e5', '#3b82f6', '#0ea5e9', '#06b6d4', '#14b8a6', '#10b981', '#84cc16', '#ef4444', '#f97316', '#ec4899'];
-
-  // Generate sample data based on user selections
+  // Generate chart data based on selected options
   const generateChartData = () => {
-    if (xAxis === 'createdAt') {
-      // Time series data
-      return [
-        { name: 'Jan', value: 65, count: 65, conversion: 12 },
-        { name: 'Feb', value: 59, count: 59, conversion: 15 },
-        { name: 'Mar', value: 80, count: 80, conversion: 18 },
-        { name: 'Apr', value: 81, count: 81, conversion: 22 },
-        { name: 'May', value: 56, count: 56, conversion: 16 },
-        { name: 'Jun', value: 55, count: 55, conversion: 14 },
-        { name: 'Jul', value: 40, count: 40, conversion: 12 }
-      ];
-    }
+    const dataMap = new Map();
     
-    // Count by category
-    if (xAxis === 'source') {
-      return [
-        { name: 'Website', value: 140, count: 140, conversion: 18 },
-        { name: 'Referral', value: 110, count: 110, conversion: 22 },
-        { name: 'Social Media', value: 95, count: 95, conversion: 15 },
-        { name: 'Email', value: 85, count: 85, conversion: 14 },
-        { name: 'Event', value: 75, count: 75, conversion: 12 }
-      ];
-    }
+    leads.forEach(lead => {
+      let xValue = lead[xAxis] || 'Undefined';
+      if (xAxis === 'createdAtMonth' && lead.createdAt) {
+        xValue = new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'long' });
+      }
+      
+      if (!dataMap.has(xValue)) {
+        dataMap.set(xValue, 0);
+      }
+      dataMap.set(xValue, dataMap.get(xValue) + 1);
+    });
     
-    if (xAxis === 'status') {
-      return [
-        { name: 'New', value: 120, count: 120, conversion: 0 },
-        { name: 'Contacted', value: 190, count: 190, conversion: 5 },
-        { name: 'Qualified', value: 150, count: 150, conversion: 15 },
-        { name: 'Proposal', value: 80, count: 80, conversion: 35 },
-        { name: 'Negotiation', value: 50, count: 50, conversion: 60 },
-        { name: 'Closed Won', value: 95, count: 95, conversion: 100 },
-        { name: 'Closed Lost', value: 75, count: 75, conversion: 0 }
-      ];
-    }
+    const chartData = Array.from(dataMap.entries()).map(([name, value]) => ({
+      name,
+      value
+    }));
     
-    if (xAxis === 'stage') {
-      return [
-        { name: 'Discovery', value: 210, count: 210, conversion: 12 },
-        { name: 'Qualification', value: 150, count: 150, conversion: 18 },
-        { name: 'Demo', value: 120, count: 120, conversion: 25 },
-        { name: 'Proposal', value: 80, count: 80, conversion: 40 },
-        { name: 'Negotiation', value: 60, count: 60, conversion: 65 }
-      ];
-    }
-    
-    // Default data
-    return [
-      { name: 'John', value: 35, count: 35, conversion: 22 },
-      { name: 'Sarah', value: 45, count: 45, conversion: 28 },
-      { name: 'Mike', value: 25, count: 25, conversion: 15 },
-      { name: 'Lisa', value: 30, count: 30, conversion: 18 },
-      { name: 'David', value: 40, count: 40, conversion: 25 }
-    ];
+    return chartData;
   };
 
-  const chartData = generateChartData();
+  const COLORS = ['#4f46e5', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
   
-  // For pie chart data
-  const pieData = chartData.map(item => ({
-    name: item.name,
-    value: item[yAxis as keyof typeof item]
-  }));
-
-  const renderChart = () => {
-    const dataKey = yAxis;
-    
-    switch (chartType) {
-      case 'bar':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
-              <YAxis />
-              <Tooltip formatter={(value) => yAxis === 'conversion' ? `${value}%` : value} />
-              <Legend />
-              <Bar dataKey={dataKey} fill="#4f46e5" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        );
-        
-      case 'line':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <RechartLine data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
-              <YAxis />
-              <Tooltip formatter={(value) => yAxis === 'conversion' ? `${value}%` : value} />
-              <Legend />
-              <Line type="monotone" dataKey={dataKey} stroke="#4f46e5" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-            </RechartLine>
-          </ResponsiveContainer>
-        );
-        
-      case 'pie':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <RechartPie margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                labelLine={true}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => yAxis === 'conversion' ? `${value}%` : value} />
-              <Legend />
-            </RechartPie>
-          </ResponsiveContainer>
-        );
-        
-      case 'area':
-        return (
-          <ResponsiveContainer width="100%" height={400}>
-            <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={-45} textAnchor="end" height={70} />
-              <YAxis />
-              <Tooltip formatter={(value) => yAxis === 'conversion' ? `${value}%` : value} />
-              <Legend />
-              <Area type="monotone" dataKey={dataKey} stroke="#4f46e5" fill="url(#colorGradient)" />
-              <defs>
-                <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-            </AreaChart>
-          </ResponsiveContainer>
-        );
-        
-      default:
-        return <div>Select a chart type</div>;
-    }
-  };
+  const chartData = generateChartData();
 
   return (
     <div className="space-y-6">
-      <Card className="border-border/40 shadow-md overflow-hidden dark:bg-gray-900">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <CardTitle className="text-xl">Lead Analytics</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={chartType} onValueChange={setChartType}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue placeholder="Chart type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bar">
-                    <div className="flex items-center">
-                      <BarChart4 className="w-4 h-4 mr-2" />
-                      <span>Bar Chart</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="line">
-                    <div className="flex items-center">
-                      <LineChart className="w-4 h-4 mr-2" />
-                      <span>Line Chart</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="pie">
-                    <div className="flex items-center">
-                      <PieChart className="w-4 h-4 mr-2" />
-                      <span>Pie Chart</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="area">
-                    <div className="flex items-center">
-                      <Activity className="w-4 h-4 mr-2" />
-                      <span>Area Chart</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="flex gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card className="col-span-3 md:col-span-1">
+          <CardContent className="pt-6">
+            <h3 className="text-sm font-medium mb-4">Chart Configuration</h3>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Chart Type</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant={chartType === 'bar' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setChartType('bar')}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <BarChart2 className="h-4 w-4" />
+                    <span>Bar</span>
+                  </Button>
+                  <Button 
+                    variant={chartType === 'line' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setChartType('line')}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Line</span>
+                  </Button>
+                  <Button 
+                    variant={chartType === 'pie' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setChartType('pie')}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    <PieChartIcon className="h-4 w-4" />
+                    <span>Pie</span>
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">X-Axis (Category)</label>
                 <Select value={xAxis} onValueChange={setXAxis}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue placeholder="X Axis" />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select field" />
                   </SelectTrigger>
                   <SelectContent>
                     {fieldOptions.map(option => (
@@ -272,10 +120,13 @@ export function LeadAnalytics() {
                     ))}
                   </SelectContent>
                 </Select>
-
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-xs text-muted-foreground">Y-Axis (Value)</label>
                 <Select value={yAxis} onValueChange={setYAxis}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue placeholder="Y Axis" />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select measurement" />
                   </SelectTrigger>
                   <SelectContent>
                     {valueOptions.map(option => (
@@ -286,156 +137,162 @@ export function LeadAnalytics() {
                   </SelectContent>
                 </Select>
               </div>
-
-              {xAxis === 'createdAt' && (
-                <Select value={groupBy} onValueChange={setGroupBy}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue placeholder="Group By" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={refreshData} disabled={isLoading}>
-                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
+              
+              <div className="flex justify-between pt-2">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  <span>Filter</span>
                 </Button>
-
-                <Button variant="outline" size="sm">
-                  <DownloadCloud className="h-4 w-4 mr-2" />
-                  <span>Export</span>
+                <Button 
+                  size="sm" 
+                  className="flex items-center gap-2" 
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  <span>Refresh</span>
                 </Button>
               </div>
             </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          <Tabs defaultValue="chart" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="chart" className="flex items-center gap-2">
-                <BarChart4 className="w-4 h-4" />
-                <span>Chart View</span>
-              </TabsTrigger>
-              <TabsTrigger value="time" className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                <span>Time Analysis</span>
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="chart" className="pt-2">
-              {renderChart()}
-            </TabsContent>
-            
-            <TabsContent value="time" className="pt-2">
-              <ResponsiveContainer width="100%" height={400}>
-                <AreaChart data={[
-                  { date: 'Jan', newLeads: 65, qualifiedLeads: 28, closedLeads: 15 },
-                  { date: 'Feb', newLeads: 59, qualifiedLeads: 32, closedLeads: 18 },
-                  { date: 'Mar', newLeads: 80, qualifiedLeads: 41, closedLeads: 25 },
-                  { date: 'Apr', newLeads: 81, qualifiedLeads: 45, closedLeads: 30 },
-                  { date: 'May', newLeads: 56, qualifiedLeads: 36, closedLeads: 24 },
-                  { date: 'Jun', newLeads: 55, qualifiedLeads: 32, closedLeads: 22 },
-                  { date: 'Jul', newLeads: 40, qualifiedLeads: 28, closedLeads: 19 }
-                ]}
-                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Area type="monotone" dataKey="newLeads" name="New Leads" stroke="#4f46e5" fill="url(#colorNew)" stackId="1" />
-                  <Area type="monotone" dataKey="qualifiedLeads" name="Qualified Leads" stroke="#06b6d4" fill="url(#colorQualified)" stackId="1" />
-                  <Area type="monotone" dataKey="closedLeads" name="Closed Deals" stroke="#10b981" fill="url(#colorClosed)" stackId="1" />
-                  <defs>
-                    <linearGradient id="colorNew" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorQualified" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.1}/>
-                    </linearGradient>
-                    <linearGradient id="colorClosed" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
-                    </linearGradient>
-                  </defs>
-                </AreaChart>
-              </ResponsiveContainer>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="border-border/40 shadow-md overflow-hidden dark:bg-gray-900">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-lg">
-              <PieChart className="w-5 h-5 mr-2 text-indigo-500" />
-              Lead Sources Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <RechartPie>
-                <Pie
-                  data={[
-                    { name: 'Website', value: 140 },
-                    { name: 'Referral', value: 110 },
-                    { name: 'Social', value: 95 },
-                    { name: 'Email', value: 85 },
-                    { name: 'Event', value: 75 }
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {[...Array(5)].map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </RechartPie>
-            </ResponsiveContainer>
           </CardContent>
         </Card>
         
-        <Card className="border-border/40 shadow-md overflow-hidden dark:bg-gray-900">
+        <Card className="col-span-3 md:col-span-2">
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-lg">
-              <BarChart4 className="w-5 h-5 mr-2 text-sky-500" />
-              Conversion by Stage
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">
+                {fieldOptions.find(f => f.value === xAxis)?.label} by {valueOptions.find(v => v.value === yAxis)?.label}
+              </CardTitle>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                <span>Export</span>
+              </Button>
+            </div>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={[
-                { name: 'Discovery', conversion: 100 },
-                { name: 'Qualification', conversion: 68 },
-                { name: 'Demo', conversion: 45 },
-                { name: 'Proposal', conversion: 32 },
-                { name: 'Negotiation', conversion: 25 },
-                { name: 'Closed', conversion: 18 }
-              ]}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `${value}%`} />
-                <Bar dataKey="conversion" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-2">
+            <div className="h-[400px] w-full">
+              {chartType === 'bar' && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={70} 
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" name={valueOptions.find(v => v.value === yAxis)?.label} fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+              
+              {chartType === 'line' && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end"
+                      height={70}
+                      tick={{ fontSize: 12 }}
+                    />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      name={valueOptions.find(v => v.value === yAxis)?.label} 
+                      stroke="#4f46e5" 
+                      strokeWidth={2}
+                      activeDot={{ r: 8 }} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+              
+              {chartType === 'pie' && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                      outerRadius={120}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [value, valueOptions.find(v => v.value === yAxis)?.label]} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">Lead Conversion Rate</h3>
+                <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+              <p className="text-2xl font-bold">23.5%</p>
+              <p className="text-sm text-blue-600/70 dark:text-blue-400/70">+2.7% from previous month</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-emerald-800 dark:text-emerald-300">Average Response Time</h3>
+                <ArrowUpRight className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+              <p className="text-2xl font-bold">3.2 hours</p>
+              <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">-15.4% from previous month</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/20 dark:to-yellow-950/20">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-amber-800 dark:text-amber-300">Leads Per Channel</h3>
+                <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              </div>
+              <p className="text-2xl font-bold">4.7</p>
+              <p className="text-sm text-amber-600/70 dark:text-amber-400/70">Website leads performing best</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/20 dark:to-violet-950/20">
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-purple-800 dark:text-purple-300">Customer Acquisition Cost</h3>
+                <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </div>
+              <p className="text-2xl font-bold">$42.80</p>
+              <p className="text-sm text-purple-600/70 dark:text-purple-400/70">-$3.25 from previous month</p>
+            </div>
           </CardContent>
         </Card>
       </div>
