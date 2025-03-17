@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useLeads } from '@/contexts/LeadContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -45,7 +44,6 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
   const { filteredLeads, loading } = useLeads();
   const [groupByField, setGroupByField] = useState<string>('status');
   
-  // Default fields to group by
   const groupByOptions = [
     { value: 'status', label: 'Status' },
     { value: 'stage', label: 'Stage' },
@@ -54,7 +52,6 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     { value: 'center', label: 'Center' }
   ];
   
-  // Sample data for demonstration if no real data is available
   const sampleLeads = [
     {
       id: 'lead-1',
@@ -136,13 +133,10 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     }
   ];
 
-  // Use sample data if no real data is available
   const displayLeads = filteredLeads.length > 0 ? filteredLeads : sampleLeads;
   
-  // Group leads by the selected field
   const groupedLeads = groupBy(displayLeads, groupByField as keyof typeof displayLeads[0]);
   
-  // Sort groups by priority (for status)
   const sortedGroups = Object.keys(groupedLeads).sort((a, b) => {
     if (groupByField === 'status') {
       const statusPriority: Record<string, number> = {
@@ -181,7 +175,6 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
       return getStatusColor(group);
     }
     
-    // Colors for other group types
     const colors = [
       'from-indigo-500 to-purple-500',
       'from-blue-500 to-indigo-500',
@@ -191,7 +184,6 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
       'from-rose-500 to-pink-500'
     ];
     
-    // Generate consistent color based on string
     const index = group.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
   };
@@ -221,7 +213,6 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     return icons[stage] || <Flag className="h-3.5 w-3.5" />;
   };
 
-  // Get follow-up badges
   const getFollowUpBadges = (lead: any) => {
     const followUps = [];
     for (let i = 1; i <= 4; i++) {
@@ -319,8 +310,8 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
                               variant={
                                 lead.status === 'Converted' ? 'success' : 
                                 lead.status === 'Hot' ? 'destructive' : 
-                                lead.status === 'Warm' ? 'warning' : 
-                                'secondary'
+                                lead.status === 'Warm' ? 'secondary' : 
+                                'default'
                               } 
                               className="text-xs"
                             >
@@ -362,7 +353,6 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
                       )}
                     </div>
                     
-                    {/* Follow-up badges */}
                     {getFollowUpBadges(lead).length > 0 && (
                       <div className="mt-2 flex flex-wrap gap-1">
                         {getFollowUpBadges(lead).map((followUp, idx) => (
@@ -408,7 +398,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
         ))}
       </div>
       
-      <style jsx global>{`
+      <style>{`
         .kanban-board {
           scroll-snap-type: x mandatory;
         }

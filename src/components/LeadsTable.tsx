@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -54,9 +53,10 @@ interface LeadsTableProps {
   onLeadClick: (lead: any) => void;
   selectedLeads: string[];
   setSelectedLeads: (leadIds: string[]) => void;
+  compactMode?: boolean; // Added compactMode prop as optional
 }
 
-export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads }: LeadsTableProps) => {
+export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compactMode = false }: LeadsTableProps) => {
   const { 
     filteredLeads, 
     loading, 
@@ -115,7 +115,6 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads }: Lea
     }
   };
 
-  // Sample data for demonstration if no real data is available
   const sampleLeads = [
     {
       id: 'lead-1',
@@ -184,7 +183,6 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads }: Lea
     }
   ];
 
-  // Use sample data if no real data is available
   const displayLeads = paginatedLeads.length > 0 ? paginatedLeads : sampleLeads;
 
   if (loading) {
