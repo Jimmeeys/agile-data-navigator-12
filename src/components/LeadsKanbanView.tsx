@@ -36,14 +36,15 @@ import {
   Clock
 } from 'lucide-react';
 import { formatDate, groupBy } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LeadsKanbanViewProps {
   onLeadClick: (lead: any) => void;
 }
 
 export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
-  const { filteredLeads, loading } = useLeads();
-  const [groupByField, setGroupByField] = useState<string>('status');
+  const { filteredLeads, loading, settings, updateSettings } = useLeads();
+  const [groupByField, setGroupByField] = useState<string>(settings.kanbanGroupBy || 'status');
   
   const groupByOptions = [
     { value: 'status', label: 'Status' },
@@ -54,6 +55,14 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
   ];
   
   const groupedLeads = groupBy(filteredLeads, groupByField as keyof typeof filteredLeads[0]);
+  
+  const handleGroupByChange = (value: string) => {
+    setGroupByField(value);
+    updateSettings({
+      ...settings,
+      kanbanGroupBy: value
+    });
+  };
   
   const sortedGroups = Object.keys(groupedLeads).sort((a, b) => {
     if (groupByField === 'status') {
@@ -70,6 +79,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
   });
   
   const getInitials = (name: string): string => {
+    if (!name) return 'NA';
     return name
       .split(' ')
       .map(part => part[0])
@@ -172,7 +182,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
         </div>
         
         <div className="flex items-center gap-2">
-          <Select value={groupByField} onValueChange={setGroupByField}>
+          <Select value={groupByField} onValueChange={handleGroupByChange}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Group by" />
             </SelectTrigger>
@@ -193,7 +203,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
             <div className={`sticky top-0 z-10 bg-gradient-to-r ${getGroupColor(group)} p-3 rounded-t-md text-white shadow-md`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium">{group}</h3>
+                  <h3 className="text-sm font-medium">{group || 'Undefined'}</h3>
                   <Badge className="bg-white/30 text-white hover:bg-white/40">
                     {groupedLeads[group].length}
                   </Badge>
@@ -265,7 +275,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
                     </div>
                     
                     <div className="mt-2 flex flex-wrap gap-1">
-                      {lead.source && (
+                      {lead.source && groupByField !== 'source' && (
                         <Badge variant="outline" className="text-xs flex items-center gap-1 bg-blue-50 dark:bg-blue-950/20">
                           {getSourceIcon(lead.source)}
                           <span>{lead.source}</span>
@@ -316,6 +326,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
               <Button 
                 variant="ghost" 
                 className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => toast.info("Add new lead functionality coming soon")}
               >
                 <Plus className="h-3 w-3 mr-1" />
                 Add Card

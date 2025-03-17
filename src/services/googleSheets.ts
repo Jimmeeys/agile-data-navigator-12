@@ -26,8 +26,74 @@ export interface Lead {
   [key: string]: any; // Allow additional properties
 }
 
-// Store leads data
-let currentLeads: Lead[] = [];
+// Store leads data with some initial sample data for demonstration
+let currentLeads: Lead[] = [
+  {
+    id: "lead-1",
+    fullName: "Aarav Patel",
+    email: "aarav.patel@example.com",
+    phone: "+91 9876543210",
+    source: "Website",
+    associate: "Anjali Sharma",
+    status: "Hot",
+    stage: "Trial Scheduled",
+    createdAt: "2023-09-15",
+    center: "Mumbai Central",
+    remarks: "Interested in yoga classes, scheduled for trial on Saturday"
+  },
+  {
+    id: "lead-2",
+    fullName: "Priya Singh",
+    email: "priya.singh@example.com",
+    phone: "+91 8765432109",
+    source: "Referral",
+    associate: "Rahul Kumar",
+    status: "Warm",
+    stage: "Initial Contact",
+    createdAt: "2023-09-10",
+    center: "Delhi NCR",
+    remarks: "Referred by existing member, looking for evening classes"
+  },
+  {
+    id: "lead-3",
+    fullName: "Vikram Nair",
+    email: "vikram.nair@example.com",
+    phone: "+91 7654321098",
+    source: "Social Media",
+    associate: "Divya Gupta",
+    status: "Cold",
+    stage: "Shared Pricing & Schedule Details",
+    createdAt: "2023-09-05",
+    center: "Bangalore South",
+    remarks: "Found us on Instagram, price conscious"
+  },
+  {
+    id: "lead-4",
+    fullName: "Neha Reddy",
+    email: "neha.reddy@example.com",
+    phone: "+91 6543210987",
+    source: "Event",
+    associate: "Vikrant Malhotra",
+    status: "Converted",
+    stage: "Membership Sold",
+    createdAt: "2023-08-25",
+    center: "Chennai Central",
+    remarks: "Joined after attending our wellness workshop"
+  },
+  {
+    id: "lead-5",
+    fullName: "Arjun Mehta",
+    email: "arjun.mehta@example.com",
+    phone: "+91 5432109876",
+    source: "Website",
+    associate: "Anjali Sharma",
+    status: "Hot",
+    stage: "Trial Completed",
+    createdAt: "2023-08-20",
+    center: "Mumbai Central",
+    remarks: "Really enjoyed the trial class, following up on membership options"
+  }
+];
 
 // Function to fetch all leads
 export const fetchLeads = async (): Promise<Lead[]> => {

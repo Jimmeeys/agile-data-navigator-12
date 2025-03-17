@@ -35,6 +35,7 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface LeadsCardViewProps {
   onLeadClick: (lead: any) => void;
@@ -45,11 +46,26 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
     filteredLeads, 
     loading, 
     page, 
-    pageSize 
+    pageSize,
+    deleteLead
   } = useLeads();
 
   const startIndex = (page - 1) * pageSize;
   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + pageSize);
+
+  const handleDeleteLead = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to delete this lead?")) {
+      deleteLead(id)
+        .then(() => {
+          toast.success("Lead deleted successfully");
+        })
+        .catch((error) => {
+          toast.error("Failed to delete lead");
+          console.error(error);
+        });
+    }
+  };
 
   if (loading) {
     return (
@@ -151,16 +167,25 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => onLeadClick(lead)}>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    onLeadClick(lead);
+                  }}>
                     <Edit className="mr-2 h-4 w-4" />
                     Edit Lead
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    toast.info("View details coming soon");
+                  }}>
                     <Eye className="mr-2 h-4 w-4" />
                     View Details
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive focus:text-destructive">
+                  <DropdownMenuItem 
+                    className="text-destructive focus:text-destructive"
+                    onClick={(e) => handleDeleteLead(lead.id, e)}
+                  >
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete Lead
                   </DropdownMenuItem>
@@ -224,7 +249,7 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
         ))
       ) : (
         <div className="col-span-full text-center py-10 text-muted-foreground">
-          No leads found
+          No leads found. Try adjusting your filters or adding new leads.
         </div>
       )}
     </div>

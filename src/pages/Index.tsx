@@ -50,13 +50,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Lead } from "@/services/googleSheets";
 
 const Index = () => {
-  const { refreshData, isRefreshing, settings, updateSettings } = useLeads();
+  const { refreshData, isRefreshing, settings, updateSettings, addLead } = useLeads();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedView, setSelectedView] = useState<string>("table");
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedLead, setSelectedLead] = useState(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [compactMode, setCompactMode] = useState(false);
 
@@ -67,6 +68,25 @@ const Index = () => {
 
   const handleBulkEdit = () => {
     setSelectedLead(null);
+    setEditModalOpen(true);
+  };
+
+  const handleAddNewLead = () => {
+    const newLead: Lead = {
+      id: `new-${Date.now()}`,
+      fullName: "",
+      email: "",
+      phone: "",
+      source: "Website",
+      associate: "",
+      status: "New",
+      stage: "Initial Contact",
+      createdAt: new Date().toISOString().split('T')[0],
+      center: "",
+      remarks: ""
+    };
+    
+    setSelectedLead(newLead);
     setEditModalOpen(true);
   };
 
