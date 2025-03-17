@@ -5,9 +5,7 @@ import {
   ChevronDown, 
   Calendar as CalendarIcon, 
   X,
-  Tag,
-  Building2,
-  Clock
+  Tag
 } from 'lucide-react';
 import { useLeads } from '@/contexts/LeadContext';
 import { Button } from '@/components/ui/button';
@@ -19,7 +17,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Card } from '@/components/ui/card';
 import { 
@@ -28,7 +25,7 @@ import {
   PopoverTrigger 
 } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 export function FilterPanel() {
@@ -45,7 +42,6 @@ export function FilterPanel() {
   
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
   
-  // Handle filter changes
   const handleSourceChange = (value: string) => {
     const currentValues = [...filters.source];
     const index = currentValues.indexOf(value);
@@ -137,53 +133,6 @@ export function FilterPanel() {
       dateRange: {
         start: null,
         end: null
-      }
-    });
-    setDatePopoverOpen(false);
-  };
-  
-  // Quick date filters
-  const applyThisWeekFilter = () => {
-    const today = new Date();
-    const startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-    const endDate = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
-    
-    setFilters({
-      ...filters,
-      dateRange: {
-        start: startDate,
-        end: endDate
-      }
-    });
-    setDatePopoverOpen(false);
-  };
-  
-  const applyThisMonthFilter = () => {
-    const today = new Date();
-    const startDate = startOfMonth(today);
-    const endDate = endOfMonth(today);
-    
-    setFilters({
-      ...filters,
-      dateRange: {
-        start: startDate,
-        end: endDate
-      }
-    });
-    setDatePopoverOpen(false);
-  };
-  
-  const applyLastMonthFilter = () => {
-    const today = new Date();
-    const lastMonth = subMonths(today, 1);
-    const startDate = startOfMonth(lastMonth);
-    const endDate = endOfMonth(lastMonth);
-    
-    setFilters({
-      ...filters,
-      dateRange: {
-        start: startDate,
-        end: endDate
       }
     });
     setDatePopoverOpen(false);
@@ -288,33 +237,6 @@ export function FilterPanel() {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          {/* Center Filter - New */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                <Building2 className="h-4 w-4" />
-                Center
-                {filters.center.length > 0 && (
-                  <Badge className="ml-1 bg-primary">{filters.center.length}</Badge>
-                )}
-                <ChevronDown className="h-3 w-3 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-52">
-              <DropdownMenuLabel>Select Centers</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {centerOptions.map((center) => (
-                <DropdownMenuCheckboxItem
-                  key={center}
-                  checked={filters.center.includes(center)}
-                  onCheckedChange={() => handleCenterChange(center)}
-                >
-                  {center}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          
           {/* Status Filter */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -367,7 +289,7 @@ export function FilterPanel() {
             </DropdownMenuContent>
           </DropdownMenu>
           
-          {/* Date Range Filter with Quick Filters */}
+          {/* Date Range Filter */}
           <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-2">
@@ -382,22 +304,6 @@ export function FilterPanel() {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <div className="flex flex-col space-y-2 p-2">
-                {/* Quick Filters */}
-                <div className="p-2 bg-muted/20 rounded-md">
-                  <h4 className="text-xs font-medium mb-2">Quick Filters</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={applyThisWeekFilter}>
-                      <Clock className="h-3 w-3 mr-1" /> This Week
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={applyThisMonthFilter}>
-                      <Clock className="h-3 w-3 mr-1" /> This Month
-                    </Button>
-                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={applyLastMonthFilter}>
-                      <Clock className="h-3 w-3 mr-1" /> Last Month
-                    </Button>
-                  </div>
-                </div>
-                
                 <div className="flex flex-col gap-2 pb-4">
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
@@ -424,7 +330,6 @@ export function FilterPanel() {
                           ? date > filters.dateRange.end 
                           : false
                       }
-                      className="pointer-events-auto"
                     />
                   </div>
                   <div className="grid gap-2">
@@ -452,7 +357,6 @@ export function FilterPanel() {
                           ? date < filters.dateRange.start 
                           : false
                       }
-                      className="pointer-events-auto"
                     />
                   </div>
                 </div>
