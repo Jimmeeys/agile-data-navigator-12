@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useLeads } from '@/contexts/LeadContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,90 +53,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     { value: 'center', label: 'Center' }
   ];
   
-  const sampleLeads = [
-    {
-      id: 'lead-1',
-      fullName: 'John Smith',
-      email: 'johnsmith@example.com',
-      phone: '(555) 123-4567',
-      source: 'Website',
-      associate: 'Sarah Johnson',
-      status: 'Hot',
-      createdAt: '2023-09-15',
-      center: 'Downtown',
-      stage: 'Qualification',
-      remarks: 'Interested in premium package'
-    },
-    {
-      id: 'lead-2',
-      fullName: 'Emma Wilson',
-      email: 'emma.wilson@example.com',
-      phone: '(555) 987-6543',
-      source: 'Referral',
-      associate: 'Mike Chen',
-      status: 'Cold',
-      createdAt: '2023-09-10',
-      center: 'Uptown',
-      stage: 'Needs Analysis',
-      remarks: 'Follow up in 2 weeks'
-    },
-    {
-      id: 'lead-3',
-      fullName: 'Robert Johnson',
-      email: 'robert.j@example.com',
-      phone: '(555) 333-2222',
-      source: 'Social Media',
-      associate: 'Lisa Wong',
-      status: 'Warm',
-      createdAt: '2023-09-05',
-      center: 'Midtown',
-      stage: 'Proposal',
-      remarks: 'Sent proposal, awaiting feedback'
-    },
-    {
-      id: 'lead-4',
-      fullName: 'Michael Brown',
-      email: 'mbrown@example.com',
-      phone: '(555) 444-5555',
-      source: 'Event',
-      associate: 'Sarah Johnson',
-      status: 'Converted',
-      createdAt: '2023-08-28',
-      center: 'Downtown',
-      stage: 'Closed Won',
-      remarks: 'Successfully converted to customer'
-    },
-    {
-      id: 'lead-5',
-      fullName: 'Jennifer Lee',
-      email: 'jlee@example.com',
-      phone: '(555) 777-8888',
-      source: 'Website',
-      associate: 'Mike Chen',
-      status: 'Hot',
-      createdAt: '2023-09-18',
-      center: 'Uptown',
-      stage: 'Qualification',
-      remarks: 'Very interested in our services'
-    },
-    {
-      id: 'lead-6',
-      fullName: 'David Wilson',
-      email: 'david.w@example.com',
-      phone: '(555) 222-3333',
-      source: 'Website',
-      associate: 'Lisa Wong',
-      status: 'Warm',
-      createdAt: '2023-09-12',
-      center: 'Downtown',
-      stage: 'Needs Analysis',
-      remarks: 'Requested a follow-up call'
-    }
-  ];
-
-  const displayLeads = filteredLeads.length > 0 ? filteredLeads : sampleLeads;
-  
-  const groupedLeads = groupBy(displayLeads, groupByField as keyof typeof displayLeads[0]);
+  const groupedLeads = groupBy(filteredLeads, groupByField as keyof typeof filteredLeads[0]);
   
   const sortedGroups = Object.keys(groupedLeads).sort((a, b) => {
     if (groupByField === 'status') {
@@ -232,6 +150,15 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
       <div className="p-6 text-center">
         <div className="animate-spin h-10 w-10 rounded-full border-4 border-primary border-t-transparent mx-auto"></div>
         <p className="mt-4 text-muted-foreground">Loading kanban board...</p>
+      </div>
+    );
+  }
+  
+  // If there are no leads, show a message
+  if (Object.keys(groupedLeads).length === 0) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-muted-foreground">No leads found. Try adjusting your filters or import some leads.</p>
       </div>
     );
   }
