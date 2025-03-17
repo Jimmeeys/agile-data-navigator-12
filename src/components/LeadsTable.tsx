@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -41,7 +42,26 @@ import {
   Megaphone,
   FilePlus2,
   UserPlus,
-  Locate
+  Locate,
+  CalendarClock,
+  ShoppingCart,
+  Hourglass,
+  XCircle,
+  PhoneCall,
+  MessageCircle,
+  WalletCards,
+  Send,
+  Landmark,
+  BookX,
+  UserX,
+  Language,
+  PhoneOff,
+  DollarSign,
+  Calendar,
+  Map,
+  HeartPulse,
+  LocateFixed,
+  Plane
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,7 +73,7 @@ interface LeadsTableProps {
   onLeadClick: (lead: any) => void;
   selectedLeads: string[];
   setSelectedLeads: (leadIds: string[]) => void;
-  compactMode?: boolean; // Added compactMode prop as optional
+  compactMode?: boolean;
 }
 
 export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compactMode = false }: LeadsTableProps) => {
@@ -220,45 +240,100 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
   };
 
   const getStageIcon = (stage: string) => {
-    switch(stage) {
-      case 'Qualification':
-        return <HelpCircle className="h-4 w-4 text-blue-500" />;
-      case 'Needs Analysis':
-        return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      case 'Proposal':
-        return <FilePlus2 className="h-4 w-4 text-purple-500" />;
-      case 'Negotiation':
-        return <Zap className="h-4 w-4 text-amber-500" />;
-      case 'Closed Won':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'Closed Lost':
-        return <Trash2 className="h-4 w-4 text-red-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
-    }
+    const stageIconMap: Record<string, JSX.Element> = {
+      // Initial stages
+      'New Enquiry': <Zap className="h-4 w-4 text-blue-500" />,
+      'Initial Contact': <PhoneCall className="h-4 w-4 text-blue-500" />,
+      'Sent Introductory message': <MessageCircle className="h-4 w-4 text-indigo-500" />,
+      'Sent Introductory Message': <MessageCircle className="h-4 w-4 text-indigo-500" />,
+      
+      // Information sharing
+      'Shared Pricing & Schedule Details': <DollarSign className="h-4 w-4 text-green-500" />,
+      'Shared Pricing & Schedule details on WhatsApp': <MessageCircle className="h-4 w-4 text-green-500" />,
+      'Shared Class Descriptions and Benefits': <FilePlus2 className="h-4 w-4 text-orange-500" />,
+      'Shared Membership Packages And Exclusive Deals': <WalletCards className="h-4 w-4 text-amber-500" />,
+      
+      // Trial related
+      'Trial Scheduled': <Calendar className="h-4 w-4 text-purple-500" />,
+      'Trial Rescheduled': <CalendarClock className="h-4 w-4 text-purple-600" />,
+      'Trial Completed': <CheckCircle className="h-4 w-4 text-green-600" />,
+      'Post Trial Follow Up': <Send className="h-4 w-4 text-blue-600" />,
+      'Followed up with Trial Participants': <Send className="h-4 w-4 text-blue-600" />,
+      'Positive Trial Feedback - Interested in Membership': <CheckCircle className="h-4 w-4 text-green-600" />,
+      
+      // Membership / conversion
+      'Membership Sold': <ShoppingCart className="h-4 w-4 text-green-500" />,
+      
+      // Call status
+      'Called - Did Not Answer': <PhoneOff className="h-4 w-4 text-red-500" />,
+      'Called - Did not answer': <PhoneOff className="h-4 w-4 text-red-500" />,
+      'Called - Asked to Call back later': <CalendarClock className="h-4 w-4 text-amber-500" />,
+      'Called - Client out of town/traveling': <Plane className="h-4 w-4 text-blue-500" />,
+      'Called - Invalid Contact No': <XCircle className="h-4 w-4 text-red-500" />,
+      
+      // Client status
+      'Client Unresponsive': <Clock className="h-4 w-4 text-red-400" />,
+      'Will get back to us at a later date': <CalendarClock className="h-4 w-4 text-amber-500" />,
+      'Will come back once I exhaust my current gym membership': <Hourglass className="h-4 w-4 text-amber-500" />,
+      'No Response after Trial': <Clock className="h-4 w-4 text-red-400" />,
+      
+      // Not interested
+      'Not Interested - Other': <BookX className="h-4 w-4 text-gray-500" />,
+      'Not Interested - Proximity Issues': <Map className="h-4 w-4 text-gray-500" />,
+      'Not Interested - Pricing Issues': <DollarSign className="h-4 w-4 text-gray-500" />,
+      'Not Interested - Timings not suitable': <Clock className="h-4 w-4 text-gray-500" />,
+      'Not Interested - Health Issues': <HeartPulse className="h-4 w-4 text-gray-500" />,
+      'Language Barrier - Couldn\'t comprehend or speak the language': <Language className="h-4 w-4 text-gray-500" />,
+      'Lead Dropped or Lost': <UserX className="h-4 w-4 text-red-500" />,
+      
+      // Special cases
+      'Looking for Virtual Classes': <Globe className="h-4 w-4 text-blue-500" />,
+      'Looking For Virtual Classes': <Globe className="h-4 w-4 text-blue-500" />
+    };
+    
+    return stageIconMap[stage] || <HelpCircle className="h-4 w-4 text-gray-500" />;
   };
 
   const getSourceIcon = (source: string) => {
-    switch(source) {
-      case 'Website':
-        return <Globe className="h-4 w-4 text-blue-500" />;
-      case 'Referral':
-        return <UserPlus className="h-4 w-4 text-green-500" />;
-      case 'Social Media':
-        return <Twitter className="h-4 w-4 text-sky-500" />;
-      case 'LinkedIn':
-        return <LinkedinIcon className="h-4 w-4 text-blue-700" />;
-      case 'Facebook':
-        return <FacebookIcon className="h-4 w-4 text-blue-600" />;
-      case 'Instagram':
-        return <Instagram className="h-4 w-4 text-pink-600" />;
-      case 'Event':
-        return <Locate className="h-4 w-4 text-purple-500" />;
-      case 'Advertisement':
-        return <Megaphone className="h-4 w-4 text-red-500" />;
-      default:
-        return <Globe className="h-4 w-4 text-gray-500" />;
-    }
+    const sourceIconMap: Record<string, JSX.Element> = {
+      'Website': <Globe className="h-4 w-4 text-blue-500" />,
+      'Website Form': <FilePlus2 className="h-4 w-4 text-blue-500" />,
+      'Website - Pre/Post Natal': <Landmark className="h-4 w-4 text-pink-500" />,
+      
+      'Social': <Twitter className="h-4 w-4 text-sky-500" />,
+      'Social Media': <Twitter className="h-4 w-4 text-sky-500" />,
+      'Social - Instagram': <Instagram className="h-4 w-4 text-pink-600" />,
+      'Social - Facebook': <FacebookIcon className="h-4 w-4 text-blue-600" />,
+      
+      'Referral': <UserPlus className="h-4 w-4 text-green-500" />,
+      'Client Referral': <UserPlus className="h-4 w-4 text-green-600" />,
+      'Staff Referral': <UserPlus className="h-4 w-4 text-green-500" />,
+      
+      'Event': <Locate className="h-4 w-4 text-purple-500" />,
+      'Hosted Class': <Locate className="h-4 w-4 text-purple-600" />,
+      'Hosted Class ': <Locate className="h-4 w-4 text-purple-600" />,
+      'Outdoor Class': <LocateFixed className="h-4 w-4 text-green-600" />,
+      
+      'Abandoned checkout': <ShoppingCart className="h-4 w-4 text-red-500" />,
+      'Walkin': <Map className="h-4 w-4 text-blue-500" />,
+      
+      'Incoming call': <PhoneCall className="h-4 w-4 text-blue-600" />,
+      'Enquiry on call': <PhoneCall className="h-4 w-4 text-blue-500" />,
+      'Missed call': <PhoneOff className="h-4 w-4 text-red-500" />,
+      
+      'Yellow Messenger/Whatsapp Enquiry': <MessageCircle className="h-4 w-4 text-green-500" />,
+      'Incoming sms': <MessageCircle className="h-4 w-4 text-blue-500" />,
+      
+      'Dashboard': <Landmark className="h-4 w-4 text-purple-500" />,
+      'Endpoint (API)': <Globe className="h-4 w-4 text-gray-500" />,
+      
+      'Influencer Sign-up': <UserPlus className="h-4 w-4 text-pink-500" />,
+      'Influencer Marketing': <Megaphone className="h-4 w-4 text-pink-600" />,
+      
+      'Other': <HelpCircle className="h-4 w-4 text-gray-500" />
+    };
+    
+    return sourceIconMap[source] || <Globe className="h-4 w-4 text-gray-500" />;
   };
 
   const getStatusIcon = (status: string) => {
@@ -275,6 +350,8 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
         return <HelpCircle className="h-4 w-4 text-gray-500" />;
     }
   };
+
+  const rowHeightClass = compactMode ? "h-[48px]" : "h-[60px]";
 
   return (
     <Card className="shadow-md border-border/30 overflow-hidden glass-card">
@@ -326,7 +403,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
-                <TableHead className="min-w-[140px]">
+                <TableHead className="min-w-[200px]">
                   <div 
                     className="flex items-center cursor-pointer"
                     onClick={() => handleSort('stage')}
@@ -361,7 +438,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                 displayLeads.map((lead, index) => (
                   <TableRow 
                     key={lead.id} 
-                    className="h-[60px] hover:bg-muted/20 transition-colors cursor-pointer"
+                    className={`${rowHeightClass} hover:bg-muted/20 transition-colors cursor-pointer`}
                     onClick={() => onLeadClick(lead)}
                   >
                     <TableCell className="font-medium text-muted-foreground" onClick={(e) => e.stopPropagation()}>
@@ -379,12 +456,12 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                          <span className="font-medium text-foreground">{lead.fullName}</span>
+                          <span className="font-medium text-foreground truncate max-w-[180px]">{lead.fullName}</span>
                           <div className="flex items-center gap-3 text-xs text-muted-foreground">
                             {lead.email && (
                               <div className="flex items-center gap-1">
                                 <Mail className="h-3 w-3" />
-                                <span>{lead.email}</span>
+                                <span className="truncate max-w-[100px]">{lead.email}</span>
                               </div>
                             )}
                             {lead.phone && (
@@ -399,9 +476,9 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getSourceIcon(lead.source)}
-                        <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10">
-                          {lead.source}
+                        <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 flex items-center gap-1.5 py-1">
+                          {getSourceIcon(lead.source)}
+                          <span className="truncate max-w-[100px]">{lead.source}</span>
                         </Badge>
                       </div>
                     </TableCell>
@@ -415,13 +492,18 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                             {getInitials(lead.associate)}
                           </AvatarFallback>
                         </Avatar>
-                        <span>{lead.associate}</span>
+                        <span className="truncate max-w-[100px]">{lead.associate}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getStageIcon(lead.stage)}
-                        <span>{lead.stage}</span>
+                        <Badge 
+                          variant="outline" 
+                          className="bg-blue-500/10 hover:bg-blue-500/20 flex items-center gap-1.5 py-1"
+                        >
+                          {getStageIcon(lead.stage)}
+                          <span className="truncate max-w-[150px]">{lead.stage}</span>
+                        </Badge>
                       </div>
                     </TableCell>
                     <TableCell>

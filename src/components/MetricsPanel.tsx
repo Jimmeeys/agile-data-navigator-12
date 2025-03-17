@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   BarChart3, 
   ArrowUpRight, 
@@ -8,14 +8,26 @@ import {
   Layers, 
   DollarSign,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Star,
+  Activity
 } from 'lucide-react';
 import { useLeads } from '@/contexts/LeadContext';
 import { cn, formatNumber, calculatePercentageChange } from '@/lib/utils';
 import { Card, CardContent } from "@/components/ui/card";
+import CountUp from 'react-countup';
 
 export function MetricsPanel() {
-  const { statusCounts, filteredLeads, leads } = useLeads();
+  const { 
+    statusCounts, 
+    filteredLeads, 
+    leads, 
+    convertedLeadsCount, 
+    ltv, 
+    conversionRate,
+    loading 
+  } = useLeads();
+  
   const [collapsed, setCollapsed] = useState(false);
   
   // Calculate total leads count
@@ -29,14 +41,6 @@ export function MetricsPanel() {
     totalLeads > 10 ? totalLeads - Math.floor(Math.random() * 10) : totalLeads
   );
   
-  // Calculate conversion rate (assuming 'Converted' is a status)
-  const convertedCount = statusCounts['Converted'] || 0;
-  const conversionRate = totalLeads > 0 ? (convertedCount / totalLeads) * 100 : 0;
-  
-  // Calculate estimated value (assuming an average value per conversion)
-  const avgLeadValue = 1500; // Example value
-  const estimatedValue = convertedCount * avgLeadValue;
-  
   // Calculate active leads (not closed)
   const closedStatuses = ['Converted', 'Lost', 'Rejected'];
   const activeLeads = filteredLeads.filter(lead => 
@@ -48,7 +52,7 @@ export function MetricsPanel() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-medium">Key Metrics</h2>
+          <h2 className="text-lg font-medium animate-pulse bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Key Metrics</h2>
         </div>
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -70,6 +74,7 @@ export function MetricsPanel() {
             change={weekOnWeekChange}
             icon={<Users className="h-5 w-5" />}
             description={`${formatNumber(totalLeads)} of ${formatNumber(totalAllLeads)} total leads`}
+            loading={loading}
           />
           
           <MetricCard
@@ -81,6 +86,7 @@ export function MetricsPanel() {
             )}
             icon={<Layers className="h-5 w-5" />}
             description="Leads in active stages"
+            loading={loading}
           />
           
           <MetricCard
@@ -90,19 +96,24 @@ export function MetricsPanel() {
               conversionRate,
               conversionRate > 2 ? conversionRate - Math.random() * 2 : conversionRate
             )}
-            icon={<ArrowUpRight className="h-5 w-5" />}
-            description={`${convertedCount} converted leads`}
+            icon={<Activity className="h-5 w-5" />}
+            description={`${convertedLeadsCount} converted leads`}
+            loading={loading}
+            isPercentage={true}
           />
           
           <MetricCard
             title="Estimated Value"
-            value={`$${formatNumber(estimatedValue)}`}
+            value={`₹${formatNumber(ltv)}`}
             change={calculatePercentageChange(
-              estimatedValue,
-              estimatedValue > 2000 ? estimatedValue - Math.random() * 2000 : estimatedValue
+              ltv,
+              ltv > 2000 ? ltv - Math.random() * 2000 : ltv
             )}
-            icon={<DollarSign className="h-5 w-5" />}
-            description="Based on converted leads"
+            icon={<Star className="h-5 w-5" />}
+            description="Memberships sold value"
+            loading={loading}
+            isCurrency={true}
+            currencyValue={ltv}
           />
         </div>
       )}
@@ -116,18 +127,62 @@ interface MetricCardProps {
   change: number;
   icon: React.ReactNode;
   description: string;
+  loading?: boolean;
+  isPercentage?: boolean;
+  isCurrency?: boolean;
+  currencyValue?: number;
 }
 
-function MetricCard({ title, value, change, icon, description }: MetricCardProps) {
+function MetricCard({ 
+  title, 
+  value, 
+  change, 
+  icon, 
+  description, 
+  loading = false,
+  isPercentage = false,
+  isCurrency = false,
+  currencyValue = 0
+}: MetricCardProps) {
   const positive = change >= 0;
+  const prevValueRef = useRef<string | number>(0);
+
+  useEffect(() => {
+    prevValueRef.current = value;
+  }, [value]);
+
+  // Parse numeric value for CountUp
+  const numericValue = (() => {
+    if (typeof value === 'number') return value;
+    if (isPercentage) return parseFloat(value.toString());
+    if (isCurrency) return currencyValue;
+    return parseInt(value.toString().replace(/[^0-9.-]+/g, '') || '0');
+  })();
   
   return (
-    <Card className="overflow-hidden glass-card">
+    <Card className="overflow-hidden glass-card transition-all duration-300 hover:shadow-md hover:-translate-y-1">
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-semibold mt-1">{value}</h3>
+            <h3 className="text-2xl font-semibold mt-1">
+              {loading ? (
+                <div className="h-8 w-24 bg-muted/40 animate-pulse rounded"></div>
+              ) : (
+                <>
+                  {isCurrency ? '₹' : ''}
+                  <CountUp
+                    start={0}
+                    end={numericValue}
+                    duration={1.5}
+                    separator=","
+                    decimals={isPercentage ? 1 : 0}
+                    decimal="."
+                    suffix={isPercentage ? '%' : ''}
+                  />
+                </>
+              )}
+            </h3>
           </div>
           <div className="h-9 w-9 rounded-full flex items-center justify-center bg-primary/10">
             {icon}
@@ -144,11 +199,19 @@ function MetricCard({ title, value, change, icon, description }: MetricCardProps
             ) : (
               <ArrowDownRight className="h-3 w-3 mr-1" />
             )}
-            {Math.abs(change).toFixed(1)}%
+            {loading ? (
+              <div className="h-3 w-10 bg-muted/40 animate-pulse rounded"></div>
+            ) : (
+              `${Math.abs(change).toFixed(1)}%`
+            )}
           </div>
           
           <span className="text-xs text-muted-foreground">
-            {description}
+            {loading ? (
+              <div className="h-3 w-20 bg-muted/40 animate-pulse rounded"></div>
+            ) : (
+              description
+            )}
           </span>
         </div>
       </CardContent>

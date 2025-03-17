@@ -17,6 +17,10 @@ export interface LeadFilters {
     start: Date | null;
     end: Date | null;
   };
+  compareDate?: {
+    start: Date | null;
+    end: Date | null;
+  };
 }
 
 // Sort configuration
@@ -26,7 +30,7 @@ export interface SortConfig {
 }
 
 // View type
-export type ViewType = 'table' | 'card' | 'kanban' | 'timeline' | 'pivot';
+export type ViewType = 'table' | 'card' | 'kanban' | 'timeline' | 'pivot' | 'comparison';
 
 // Table display mode
 export type DisplayMode = 'compact' | 'detail';
@@ -50,6 +54,7 @@ export interface DisplaySettings {
     values: string[];
     aggregator: 'count' | 'sum' | 'average';
   };
+  theme: 'default' | 'purple' | 'blue' | 'green' | 'dark' | 'light';
 }
 
 // Context interface
@@ -101,6 +106,9 @@ interface LeadContextType {
   statusCounts: Record<string, number>;
   sourceStats: Record<string, number>;
   associateStats: Record<string, number>;
+  convertedLeadsCount: number;
+  ltv: number;
+  conversionRate: number;
   
   // Options for filters
   sourceOptions: string[];
@@ -132,10 +140,14 @@ const defaultFilters: LeadFilters = {
     start: null,
     end: null,
   },
+  compareDate: {
+    start: null,
+    end: null,
+  }
 };
 
 const defaultSettings: DisplaySettings = {
-  rowHeight: 30,
+  rowHeight: 60,
   visibleColumns: [],
   groupBy: null,
   kanbanGroupBy: 'status',
@@ -145,6 +157,7 @@ const defaultSettings: DisplaySettings = {
     values: ['id'],
     aggregator: 'count',
   },
+  theme: 'default'
 };
 
 // Create context
@@ -198,7 +211,7 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [settings.visibleColumns.length]);
   
   // Setup auto-refresh
   const {
@@ -436,6 +449,19 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const sourceStats = countByKey(filteredLeads, 'source');
   const associateStats = countByKey(filteredLeads, 'associate');
   
+  // Calculate converted leads (stage = "Membership Sold")
+  const convertedLeadsCount = filteredLeads.filter(lead => lead.stage === 'Membership Sold').length;
+  
+  // Calculate LTV (in INR)
+  const avgLeadValue = 75000; // ₹75,000 per conversion
+  const ltv = convertedLeadsCount * avgLeadValue;
+  
+  // Calculate conversion rate based on unique leads
+  const uniqueLeadEmails = new Set(filteredLeads.map(lead => lead.email));
+  const conversionRate = uniqueLeadEmails.size > 0 
+    ? (convertedLeadsCount / uniqueLeadEmails.size) * 100 
+    : 0;
+  
   // Get options for filters
   const sourceOptions = getUniqueValues(leads, 'source');
   const associateOptions = getUniqueValues(leads, 'associate');
@@ -487,6 +513,9 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     statusCounts,
     sourceStats,
     associateStats,
+    convertedLeadsCount,
+    ltv,
+    conversionRate,
     
     sourceOptions,
     associateOptions,

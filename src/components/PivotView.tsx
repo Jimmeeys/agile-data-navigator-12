@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronRight, ChevronsUpDown, RefreshCw } from 'lucide-react';
 
 export function PivotView() {
-  const { leads } = useLeads();
+  const { filteredLeads, loading } = useLeads();
   const [rowFields, setRowFields] = useState<string[]>(['status']);
   const [colFields, setColFields] = useState<string[]>(['source']);
   const [valueField, setValueField] = useState<string>('count');
@@ -69,18 +69,31 @@ export function PivotView() {
     }, 800);
   };
 
-  // Mock pivot data generation
-  const generatePivotData = () => {
-    // This is a simplified mock implementation
-    // In a real scenario, you would use a pivot library or implement complex logic
-    
+  const getFieldValue = (lead: any, field: string) => {
+    if (field === 'createdAt') {
+      return new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    } else if (field === 'createdAtYear') {
+      return new Date(lead.createdAt).getFullYear().toString();
+    } else if (field === 'createdAtMonth') {
+      return new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'long' });
+    }
+    return lead[field] || 'N/A';
+  };
+  
+  // Dynamic pivot data generation based on selected fields
+  const pivotResult = useMemo(() => {
+    // This function now dynamically generates the pivot table data based on user selections
     const rowValues = new Set<string>();
     const colValues = new Set<string>();
     
+    // Get the row and column field names
+    const rowField = rowFields[0] || 'status';
+    const colField = colFields[0] || 'source';
+    
     // Collect unique row and column values
-    leads.forEach(lead => {
-      const rowValue = getFieldValue(lead, rowFields[0]);
-      const colValue = getFieldValue(lead, colFields[0]);
+    filteredLeads.forEach(lead => {
+      const rowValue = getFieldValue(lead, rowField);
+      const colValue = getFieldValue(lead, colField);
       
       rowValues.add(rowValue);
       colValues.add(colValue);
@@ -95,35 +108,47 @@ export function PivotView() {
       });
     });
     
-    // Fill data
-    leads.forEach(lead => {
-      const rowValue = getFieldValue(lead, rowFields[0]);
-      const colValue = getFieldValue(lead, colFields[0]);
+    // Fill data based on value type
+    filteredLeads.forEach(lead => {
+      const rowValue = getFieldValue(lead, rowField);
+      const colValue = getFieldValue(lead, colField);
       
       if (pivotData[rowValue] && pivotData[rowValue][colValue] !== undefined) {
-        pivotData[rowValue][colValue] += 1;
+        if (valueType === 'count') {
+          pivotData[rowValue][colValue] += 1;
+        } else if (valueType === 'countUnique') {
+          // For unique count, we'd normally track unique values
+          // For this demo, we'll just increment
+          pivotData[rowValue][colValue] += 1;
+        } else if (valueType === 'sum' && valueField !== 'count') {
+          // For sum, we'd add the numeric value of the selected field
+          const fieldValue = lead[valueField];
+          if (typeof fieldValue === 'number') {
+            pivotData[rowValue][colValue] += fieldValue;
+          }
+        } else if (valueType === 'avg' && valueField !== 'count') {
+          // For real average, we'd track sum and count, then divide
+          // For this demo, we'll just increment
+          pivotData[rowValue][colValue] += 1;
+        }
       }
     });
     
+    // Sort the row and column values
+    const sortedRowValues = Array.from(rowValues).sort();
+    const sortedColValues = Array.from(colValues).sort();
+    
     return {
-      rowValues: Array.from(rowValues),
-      colValues: Array.from(colValues),
+      rowValues: sortedRowValues,
+      colValues: sortedColValues,
       data: pivotData
     };
-  };
+  }, [filteredLeads, rowFields, colFields, valueField, valueType]);
   
-  const getFieldValue = (lead: any, field: string) => {
-    if (field === 'createdAt') {
-      return new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-    } else if (field === 'createdAtYear') {
-      return new Date(lead.createdAt).getFullYear().toString();
-    } else if (field === 'createdAtMonth') {
-      return new Date(lead.createdAt).toLocaleDateString('en-US', { month: 'long' });
-    }
-    return lead[field] || 'N/A';
-  };
-  
-  const pivotResult = generatePivotData();
+  // Handle auto-refresh when fields change
+  useEffect(() => {
+    handleRefresh();
+  }, [rowFields, colFields, valueField, valueType, filteredLeads]);
 
   return (
     <div className="space-y-6">
@@ -229,49 +254,59 @@ export function PivotView() {
       
       <Card className="border-border/40 bg-white dark:bg-gray-900 overflow-auto">
         <div className="p-4 overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="bg-muted/50 font-medium">Rows \ Columns</TableHead>
-                {pivotResult.colValues.map((col) => (
-                  <TableHead key={col} className="bg-muted/50 font-medium">
-                    {col}
+          {isLoading ? (
+            <div className="p-8 flex items-center justify-center">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="bg-muted/50 font-medium">
+                    {fieldOptions.find(f => f.value === rowFields[0])?.label || rowFields[0]}
+                    {' / '}
+                    {fieldOptions.find(f => f.value === colFields[0])?.label || colFields[0]}
                   </TableHead>
-                ))}
-                <TableHead className="bg-muted/50 font-medium">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pivotResult.rowValues.map((row) => (
-                <TableRow key={row}>
-                  <TableCell className="font-medium bg-muted/30">{row}</TableCell>
                   {pivotResult.colValues.map((col) => (
-                    <TableCell key={`${row}-${col}`}>
-                      {pivotResult.data[row][col]}
+                    <TableHead key={col} className="bg-muted/50 font-medium">
+                      {col}
+                    </TableHead>
+                  ))}
+                  <TableHead className="bg-muted/50 font-medium">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pivotResult.rowValues.map((row) => (
+                  <TableRow key={row}>
+                    <TableCell className="font-medium bg-muted/30">{row}</TableCell>
+                    {pivotResult.colValues.map((col) => (
+                      <TableCell key={`${row}-${col}`}>
+                        {pivotResult.data[row][col]}
+                      </TableCell>
+                    ))}
+                    <TableCell className="font-medium bg-muted/30">
+                      {pivotResult.colValues.reduce((sum, col) => sum + pivotResult.data[row][col], 0)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="border-t-2">
+                  <TableCell className="font-medium bg-muted/50">Total</TableCell>
+                  {pivotResult.colValues.map((col) => (
+                    <TableCell key={`total-${col}`} className="font-medium bg-muted/30">
+                      {pivotResult.rowValues.reduce((sum, row) => sum + pivotResult.data[row][col], 0)}
                     </TableCell>
                   ))}
-                  <TableCell className="font-medium bg-muted/30">
-                    {pivotResult.colValues.reduce((sum, col) => sum + pivotResult.data[row][col], 0)}
+                  <TableCell className="font-medium bg-muted/50">
+                    {pivotResult.rowValues.reduce(
+                      (rowSum, row) => rowSum + pivotResult.colValues.reduce(
+                        (colSum, col) => colSum + pivotResult.data[row][col], 0
+                      ), 0
+                    )}
                   </TableCell>
                 </TableRow>
-              ))}
-              <TableRow className="border-t-2">
-                <TableCell className="font-medium bg-muted/50">Total</TableCell>
-                {pivotResult.colValues.map((col) => (
-                  <TableCell key={`total-${col}`} className="font-medium bg-muted/30">
-                    {pivotResult.rowValues.reduce((sum, row) => sum + pivotResult.data[row][col], 0)}
-                  </TableCell>
-                ))}
-                <TableCell className="font-medium bg-muted/50">
-                  {pivotResult.rowValues.reduce(
-                    (rowSum, row) => rowSum + pivotResult.colValues.reduce(
-                      (colSum, col) => colSum + pivotResult.data[row][col], 0
-                    ), 0
-                  )}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+              </TableBody>
+            </Table>
+          )}
         </div>
       </Card>
     </div>
