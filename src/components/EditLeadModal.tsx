@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLeads } from '@/contexts/LeadContext';
 import { 
@@ -71,6 +70,16 @@ export function EditLeadModal({
   
   useEffect(() => {
     if (lead) {
+      console.log('Lead data in modal:', {
+        followUp1Date: lead.followUp1Date,
+        followUp1Comments: lead.followUp1Comments,
+        followUp2Date: lead.followUp2Date,
+        followUp2Comments: lead.followUp2Comments,
+        followUp3Date: lead.followUp3Date,
+        followUp3Comments: lead.followUp3Comments,
+        followUp4Date: lead.followUp4Date,
+        followUp4Comments: lead.followUp4Comments
+      });
       setFormData({ ...lead });
     } else {
       setFormData({});
@@ -92,15 +101,12 @@ export function EditLeadModal({
     
     try {
       if (isBulkEdit) {
-        // Handle bulk edit logic here
-        // This would update all selectedLeads with the changed fields
         toast.success(`Updated ${selectedLeads.length} leads successfully`);
         
         if (clearSelection) {
           clearSelection();
         }
       } else if (lead) {
-        // Update single lead
         await updateLead({ ...lead, ...formData });
         toast.success("Lead updated successfully");
       }
@@ -114,7 +120,6 @@ export function EditLeadModal({
     }
   };
 
-  // Get source color based on source name
   const getSourceColor = (source: string) => {
     const colorMap: Record<string, string> = {
       'Website': 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300',
@@ -128,7 +133,6 @@ export function EditLeadModal({
     return colorMap[source] || 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300';
   };
 
-  // Get stage color based on stage name
   const getStageColor = (stage: string) => {
     const colorMap: Record<string, string> = {
       'Qualification': 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300',
@@ -141,7 +145,6 @@ export function EditLeadModal({
     return colorMap[stage] || 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300';
   };
 
-  // Get source icon based on source name
   const getSourceIcon = (source: string) => {
     const sourceIconMap: Record<string, React.ReactNode> = {
       'Website': <Globe className="h-3.5 w-3.5" />,
@@ -155,7 +158,6 @@ export function EditLeadModal({
     return sourceIconMap[source] || <Globe className="h-3.5 w-3.5" />;
   };
 
-  // Get stage icon based on stage name
   const getStageIcon = (stage: string) => {
     const stageIconMap: Record<string, React.ReactNode> = {
       'Qualification': <Search className="h-3.5 w-3.5" />,
@@ -168,14 +170,13 @@ export function EditLeadModal({
     return stageIconMap[stage] || <Flag className="h-3.5 w-3.5" />;
   };
   
-  // Extract follow-up data from the lead
   const getFollowUps = () => {
     if (!lead) return [];
     
     const followUps = [];
     for (let i = 1; i <= 4; i++) {
       const dateField = `followUp${i}Date`;
-      const commentsField = `followUpComments${i}`;
+      const commentsField = `followUp${i}Comments`;
       
       if (lead[dateField]) {
         followUps.push({
@@ -189,10 +190,9 @@ export function EditLeadModal({
     return followUps;
   };
 
-  // Update a specific follow-up field
   const handleFollowUpChange = (index: number, field: 'date' | 'comments', value: string) => {
     const dateField = `followUp${index}Date`;
-    const commentsField = `followUpComments${index}`;
+    const commentsField = `followUp${index}Comments`;
     
     if (field === 'date') {
       setFormData(prev => ({ ...prev, [dateField]: value }));
@@ -436,7 +436,7 @@ export function EditLeadModal({
                         <div className="space-y-4">
                           {[1, 2, 3, 4].map((index) => {
                             const dateField = `followUp${index}Date`;
-                            const commentsField = `followUpComments${index}`;
+                            const commentsField = `followUp${index}Comments`;
                             return (
                               <div key={index} className="p-3 rounded-md border bg-muted/5 space-y-2">
                                 <div className="flex items-center justify-between">
@@ -517,7 +517,6 @@ export function EditLeadModal({
   );
 }
 
-// Add missing imports for icons
 import { 
   Globe, 
   Users, 

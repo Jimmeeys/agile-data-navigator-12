@@ -1,4 +1,3 @@
-
 import { delay } from '@/lib/utils';
 import Papa from 'papaparse';
 
@@ -29,7 +28,7 @@ export interface Lead {
 // Google Sheets API configuration
 const SPREADSHEET_ID = '1dQMNF69WnXVQdhlLvUZTig3kL97NA21k6eZ9HRu6xiQ';
 const SHEET_NAME = '◉ Leads';
-const SHEET_RANGE = `${SHEET_NAME}!A:Z`;
+const SHEET_RANGE = `${SHEET_NAME}!A:AF`; // Updated range to include more columns (A to AF)
 
 // OAuth credentials
 const CLIENT_ID = '416630995185-007ermh3iidknbbtdmu5vct207mdlbaa.apps.googleusercontent.com';
@@ -134,6 +133,7 @@ export const fetchLeads = async (): Promise<Lead[]> => {
     
     // First row contains headers
     const headers = rows[0];
+    console.log('Sheet headers:', headers);
     
     // Map sheet data to Lead objects
     const leads: Lead[] = rows.slice(1).map((row: any[], index: number) => {
@@ -144,6 +144,9 @@ export const fetchLeads = async (): Promise<Lead[]> => {
         const value = row[colIndex] || '';
         
         switch(header.toLowerCase()) {
+          case 'id':
+            lead.id = value || `lead-${index + 1}`;
+            break;
           case 'name':
           case 'full name':
           case 'client name':
@@ -216,6 +219,16 @@ export const fetchLeads = async (): Promise<Lead[]> => {
         }
       });
       
+      // Log the first few leads to debug follow-up comments
+      if (index < 3) {
+        console.log(`Lead ${index + 1} follow-up data:`, {
+          followUp1Date: lead.followUp1Date,
+          followUp1Comments: lead.followUp1Comments,
+          followUp2Date: lead.followUp2Date,
+          followUp2Comments: lead.followUp2Comments
+        });
+      }
+      
       // Ensure all required fields have defaults
       return {
         id: lead.id || `lead-${index + 1}`,
@@ -229,6 +242,14 @@ export const fetchLeads = async (): Promise<Lead[]> => {
         createdAt: lead.createdAt || new Date().toISOString().split('T')[0],
         center: lead.center || '',
         remarks: lead.remarks || '',
+        followUp1Date: lead.followUp1Date || '',
+        followUp1Comments: lead.followUp1Comments || '',
+        followUp2Date: lead.followUp2Date || '',
+        followUp2Comments: lead.followUp2Comments || '',
+        followUp3Date: lead.followUp3Date || '',
+        followUp3Comments: lead.followUp3Comments || '',
+        followUp4Date: lead.followUp4Date || '',
+        followUp4Comments: lead.followUp4Comments || '',
         ...lead
       } as Lead;
     });
@@ -451,7 +472,15 @@ function getSampleLeads(): Lead[] {
       stage: "Trial Scheduled",
       createdAt: "2023-09-15",
       center: "Downtown Center",
-      remarks: "Interested in yoga classes, scheduled for trial on Saturday"
+      remarks: "Interested in yoga classes, scheduled for trial on Saturday",
+      followUp1Date: "2023-09-20",
+      followUp1Comments: "Called to confirm trial class. Customer is excited.",
+      followUp2Date: "2023-09-25",
+      followUp2Comments: "Completed trial class. Interested in monthly package.",
+      followUp3Date: "2023-09-28",
+      followUp3Comments: "Discussing pricing options.",
+      followUp4Date: "",
+      followUp4Comments: ""
     },
     {
       id: "lead-2",
@@ -464,7 +493,16 @@ function getSampleLeads(): Lead[] {
       stage: "Initial Contact",
       createdAt: "2023-09-10",
       center: "Westside Location",
-      remarks: "Referred by existing member, looking for evening classes"
+      remarks: "Referred by existing member, looking for evening classes",
+      followUp1Date: "2023-09-12",
+      followUp1Comments: "Left voicemail, will try again tomorrow.",
+      followUp2Date: "2023-09-13",
+      followUp2Comments: "Discussed class options, she prefers weekends.",
+      followUp3Date: "",
+      followUp3Comments: "",
+      followUp4Date: "",
+      followUp4Comments: ""
     }
   ];
 }
+
