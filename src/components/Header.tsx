@@ -83,7 +83,7 @@ export function Header() {
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="h-3 w-3" />
-                  <span>Last updated: {formatDate(lastRefreshed, "HH:mm:ss")}</span>
+                  <span>Last updated: {formatDate(lastRefreshed.toISOString(), "HH:mm:ss")}</span>
                 </div>
               </TooltipTrigger>
               <TooltipContent>
