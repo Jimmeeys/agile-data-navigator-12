@@ -42,6 +42,15 @@ export function formatNumber(value: number, options: Intl.NumberFormatOptions = 
   }).format(value);
 }
 
+export function calculatePercentageChange(current: number, previous: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  
+  const change = ((current - previous) / Math.abs(previous)) * 100;
+  
+  // Return with 1 decimal place precision
+  return parseFloat(change.toFixed(1));
+}
+
 export function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
