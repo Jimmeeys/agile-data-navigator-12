@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -14,7 +13,12 @@ import {
   DropdownMenuItem, 
   DropdownMenuLabel, 
   DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -61,13 +65,16 @@ import {
   Map,
   HeartPulse,
   LocateFixed,
-  Plane
+  Plane,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { formatDate } from '@/lib/utils';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface LeadsTableProps {
   onLeadClick: (lead: any) => void;
@@ -85,8 +92,11 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
     page,
     pageSize,
     deleteLead,
-    setPageSize
+    setPageSize,
+    settings
   } = useLeads();
+
+  const [expandedLeads, setExpandedLeads] = useState<string[]>([]);
 
   const startIndex = (page - 1) * pageSize;
   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + pageSize);
@@ -135,13 +145,25 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
     }
   };
 
-  // Status color mapping
+  const toggleExpandLead = (leadId: string) => {
+    setExpandedLeads(prev => 
+      prev.includes(leadId) 
+        ? prev.filter(id => id !== leadId)
+        : [...prev, leadId]
+    );
+  };
+
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'Converted': return 'success';
+      case 'Converted': 
+      case 'Won': return 'success';
       case 'Hot': return 'destructive';
       case 'Cold': return 'default';
       case 'Warm': return 'secondary';
+      case 'Lost': return 'destructive';
+      case 'Trial Completed': return 'success';
+      case 'Trial Scheduled': return 'warning';
+      case 'Open': return 'info';
       default: return 'default';
     }
   };
@@ -253,23 +275,22 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
   };
 
   const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'Hot':
-        return <Zap className="h-4 w-4 text-red-500" />;
-      case 'Warm':
-        return <Clock className="h-4 w-4 text-amber-500" />;
-      case 'Cold':
-        return <AlertCircle className="h-4 w-4 text-blue-500" />;
-      case 'Converted':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      default:
-        return <HelpCircle className="h-4 w-4 text-gray-500" />;
-    }
+    const statusIcons = {
+      'Hot': <Zap className="h-4 w-4 text-red-500" />,
+      'Warm': <Clock className="h-4 w-4 text-amber-500" />,
+      'Cold': <AlertCircle className="h-4 w-4 text-blue-500" />,
+      'Converted': <CheckCircle className="h-4 w-4 text-green-500" />,
+      'Won': <CheckCircle className="h-4 w-4 text-green-500" fill="currentColor" />,
+      'Lost': <XCircle className="h-4 w-4 text-red-500" />,
+      'Trial Completed': <Calendar className="h-4 w-4 text-green-500" />,
+      'Trial Scheduled': <CalendarClock className="h-4 w-4 text-amber-500" />,
+      'Open': <AlertCircle className="h-4 w-4 text-blue-500" />
+    };
+    
+    return (statusIcons as any)[status] || <HelpCircle className="h-4 w-4 text-gray-500" />;
   };
 
   const rowHeightClass = compactMode ? "h-[48px]" : "h-[60px]";
-
-  console.log('LeadsTable rendering with leads:', paginatedLeads.length);
 
   if (loading) {
     return (
@@ -286,6 +307,8 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
     );
   }
 
+  const visibleColumns = settings.visibleColumns || ['fullName', 'email', 'phone', 'source', 'associate', 'stage', 'status', 'center'];
+
   return (
     <Card className="shadow-md border-border/30 overflow-hidden glass-card">
       <CardContent className="p-0">
@@ -300,199 +323,341 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
                     aria-label="Select all leads"
                   />
                 </TableHead>
-                <TableHead className="min-w-[200px]">
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('fullName')}
-                  >
-                    Full Name
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
+                <TableHead className="w-[36px]">
+                  <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
                 </TableHead>
-                <TableHead className="min-w-[140px]">
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('source')}
-                  >
-                    Source
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="min-w-[120px]">
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('createdAt')}
-                  >
-                    Created
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="min-w-[150px]">
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('associate')}
-                  >
-                    Associate
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="min-w-[200px]">
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('stage')}
-                  >
-                    Stage
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="min-w-[120px]">
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('status')}
-                  >
-                    Status
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
-                <TableHead className="min-w-[200px]">
-                  <div 
-                    className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('remarks')}
-                  >
-                    Remarks
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </div>
-                </TableHead>
+                
+                {visibleColumns.includes('fullName') && (
+                  <TableHead className="min-w-[200px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('fullName')}
+                    >
+                      Full Name
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
+                {visibleColumns.includes('source') && (
+                  <TableHead className="min-w-[140px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('source')}
+                    >
+                      Source
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
+                {visibleColumns.includes('createdAt') && (
+                  <TableHead className="min-w-[120px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      Created
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
+                {visibleColumns.includes('associate') && (
+                  <TableHead className="min-w-[150px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('associate')}
+                    >
+                      Associate
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
+                {visibleColumns.includes('center') && (
+                  <TableHead className="min-w-[120px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('center')}
+                    >
+                      Center
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
+                {visibleColumns.includes('stage') && (
+                  <TableHead className="min-w-[200px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('stage')}
+                    >
+                      Stage
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
+                {visibleColumns.includes('status') && (
+                  <TableHead className="min-w-[120px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('status')}
+                    >
+                      Status
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
+                {visibleColumns.includes('remarks') && (
+                  <TableHead className="min-w-[200px]">
+                    <div 
+                      className="flex items-center cursor-pointer"
+                      onClick={() => handleSort('remarks')}
+                    >
+                      Remarks
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                    </div>
+                  </TableHead>
+                )}
+                
                 <TableHead className="text-right w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {paginatedLeads.length > 0 ? (
-                paginatedLeads.map((lead, index) => (
-                  <TableRow 
-                    key={lead.id} 
-                    className={`${rowHeightClass} hover:bg-muted/20 transition-colors cursor-pointer whitespace-nowrap`}
-                    onClick={() => onLeadClick(lead)}
-                  >
-                    <TableCell className="font-medium text-muted-foreground" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox 
-                        checked={selectedLeads.includes(lead.id)}
-                        onCheckedChange={(checked) => handleSelectLead(lead.id, checked === true)}
-                        aria-label={`Select lead ${lead.fullName}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border">
-                          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-medium">
-                            {getInitials(lead.fullName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-foreground truncate max-w-[180px]">{lead.fullName}</span>
-                          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                            {lead.email && (
-                              <div className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                <span className="truncate max-w-[100px]">{lead.email}</span>
+                paginatedLeads.map((lead) => (
+                  <React.Fragment key={lead.id}>
+                    <TableRow 
+                      className={`${rowHeightClass} hover:bg-muted/20 transition-colors cursor-pointer whitespace-nowrap`}
+                      onClick={() => onLeadClick(lead)}
+                    >
+                      <TableCell className="font-medium text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                        <Checkbox 
+                          checked={selectedLeads.includes(lead.id)}
+                          onCheckedChange={(checked) => handleSelectLead(lead.id, checked === true)}
+                          aria-label={`Select lead ${lead.fullName}`}
+                        />
+                      </TableCell>
+                      <TableCell onClick={(e) => {
+                        e.stopPropagation();
+                        toggleExpandLead(lead.id);
+                      }}>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                          {expandedLeads.includes(lead.id) ? 
+                            <ChevronDown className="h-4 w-4" /> : 
+                            <ChevronRight className="h-4 w-4" />
+                          }
+                        </Button>
+                      </TableCell>
+                      
+                      {visibleColumns.includes('fullName') && (
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-9 w-9 border">
+                              <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-medium">
+                                {getInitials(lead.fullName)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground truncate max-w-[180px]">{lead.fullName}</span>
+                              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                {lead.email && (
+                                  <div className="flex items-center gap-1">
+                                    <Mail className="h-3 w-3" />
+                                    <span className="truncate max-w-[100px]">{lead.email}</span>
+                                  </div>
+                                )}
+                                {lead.phone && (
+                                  <div className="flex items-center gap-1">
+                                    <Phone className="h-3 w-3" />
+                                    <span>{lead.phone}</span>
+                                  </div>
+                                )}
                               </div>
-                            )}
-                            {lead.phone && (
-                              <div className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                <span>{lead.phone}</span>
-                              </div>
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 flex items-center gap-1.5 py-1">
-                          {getSourceIcon(lead.source)}
-                          <span className="truncate max-w-[100px]">{lead.source}</span>
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {formatDate(lead.createdAt)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white text-xs">
-                            {getInitials(lead.associate)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="truncate max-w-[100px]">{lead.associate}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge 
-                          variant="outline" 
-                          className="bg-blue-500/10 hover:bg-blue-500/20 flex items-center gap-1.5 py-1"
-                        >
-                          {getStageIcon(lead.stage)}
-                          <span className="truncate max-w-[150px]">{lead.stage}</span>
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(lead.status)}
-                        <Badge 
-                          variant={getStatusColor(lead.status)}
-                          className="font-medium"
-                        >
-                          {lead.status}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="max-w-[200px] truncate">
-                        {lead.remarks || "No remarks"}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Open menu">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => onLeadClick(lead)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Lead
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewDetails(lead.id)}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleViewDetails(lead.id)}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            View Notes
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => handleDeleteLead(lead.id)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Lead
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
+                        </TableCell>
+                      )}
+                      
+                      {visibleColumns.includes('source') && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10 flex items-center gap-1.5 py-1">
+                              {getSourceIcon(lead.source)}
+                              <span className="truncate max-w-[100px]">{lead.source}</span>
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      )}
+                      
+                      {visibleColumns.includes('createdAt') && (
+                        <TableCell>
+                          {formatDate(lead.createdAt)}
+                        </TableCell>
+                      )}
+                      
+                      {visibleColumns.includes('associate') && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white text-xs">
+                                {getInitials(lead.associate)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="truncate max-w-[100px]">{lead.associate}</span>
+                          </div>
+                        </TableCell>
+                      )}
+                      
+                      {visibleColumns.includes('center') && (
+                        <TableCell>
+                          <span className="truncate max-w-[100px]">{lead.center || "N/A"}</span>
+                        </TableCell>
+                      )}
+                      
+                      {visibleColumns.includes('stage') && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className="bg-blue-500/10 hover:bg-blue-500/20 flex items-center gap-1.5 py-1"
+                            >
+                              {getStageIcon(lead.stage)}
+                              <span className="truncate max-w-[150px]">{lead.stage}</span>
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      )}
+                      
+                      {visibleColumns.includes('status') && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(lead.status)}
+                            <Badge 
+                              variant={getStatusColor(lead.status)}
+                              className="font-medium"
+                            >
+                              {lead.status}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                      )}
+                      
+                      {visibleColumns.includes('remarks') && (
+                        <TableCell>
+                          <div className="max-w-[200px] truncate">
+                            {lead.remarks || "No remarks"}
+                          </div>
+                        </TableCell>
+                      )}
+                      
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Open menu">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => onLeadClick(lead)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit Lead
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(lead.id)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(lead.id)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              View Notes
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteLead(lead.id)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Lead
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                    
+                    {expandedLeads.includes(lead.id) && (
+                      <TableRow>
+                        <TableCell colSpan={visibleColumns.length + 3} className="p-4 bg-muted/20">
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-medium">Follow-up History</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {lead.followUp1Date && (
+                                <div className="bg-card rounded-md p-3 border border-border/50 shadow-sm">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <Badge variant="outline" className="bg-primary/5 py-1">
+                                      <Calendar className="mr-1 h-3 w-3" /> 
+                                      {formatDate(lead.followUp1Date)}
+                                    </Badge>
+                                    <Badge>Follow-up 1</Badge>
+                                  </div>
+                                  <p className="text-sm">{lead.followUp1Comments || "No comments"}</p>
+                                </div>
+                              )}
+                              
+                              {lead.followUp2Date && (
+                                <div className="bg-card rounded-md p-3 border border-border/50 shadow-sm">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <Badge variant="outline" className="bg-primary/5 py-1">
+                                      <Calendar className="mr-1 h-3 w-3" /> 
+                                      {formatDate(lead.followUp2Date)}
+                                    </Badge>
+                                    <Badge>Follow-up 2</Badge>
+                                  </div>
+                                  <p className="text-sm">{lead.followUp2Comments || "No comments"}</p>
+                                </div>
+                              )}
+                              
+                              {lead.followUp3Date && (
+                                <div className="bg-card rounded-md p-3 border border-border/50 shadow-sm">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <Badge variant="outline" className="bg-primary/5 py-1">
+                                      <Calendar className="mr-1 h-3 w-3" /> 
+                                      {formatDate(lead.followUp3Date)}
+                                    </Badge>
+                                    <Badge>Follow-up 3</Badge>
+                                  </div>
+                                  <p className="text-sm">{lead.followUp3Comments || "No comments"}</p>
+                                </div>
+                              )}
+                              
+                              {lead.followUp4Date && (
+                                <div className="bg-card rounded-md p-3 border border-border/50 shadow-sm">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <Badge variant="outline" className="bg-primary/5 py-1">
+                                      <Calendar className="mr-1 h-3 w-3" /> 
+                                      {formatDate(lead.followUp4Date)}
+                                    </Badge>
+                                    <Badge>Follow-up 4</Badge>
+                                  </div>
+                                  <p className="text-sm">{lead.followUp4Comments || "No comments"}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={visibleColumns.length + 3} className="text-center py-10 text-muted-foreground">
                     No leads found. {filteredLeads.length > 0 ? "Try adjusting your filters or pagination." : "Add some leads to get started."}
                   </TableCell>
                 </TableRow>

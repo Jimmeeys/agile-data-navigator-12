@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useLeads } from '@/contexts/LeadContext';
 import { 
   Card, 
@@ -32,10 +32,14 @@ import {
   StarHalf, 
   CheckCircle, 
   Clock, 
-  AlertCircle 
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Building2
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface LeadsCardViewProps {
   onLeadClick: (lead: any) => void;
@@ -52,6 +56,8 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
 
   const startIndex = (page - 1) * pageSize;
   const paginatedLeads = filteredLeads.slice(startIndex, startIndex + pageSize);
+  
+  const [expandedCards, setExpandedCards] = useState<string[]>([]);
 
   const handleDeleteLead = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,10 +72,19 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
         });
     }
   };
+  
+  const toggleCardExpand = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedCards(prev => 
+      prev.includes(id) 
+        ? prev.filter(cardId => cardId !== id)
+        : [...prev, id]
+    );
+  };
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
         {Array(6).fill(0).map((_, index) => (
           <Card key={index} className="shadow-md animate-pulse">
             <CardHeader className="pb-2">
@@ -91,10 +106,15 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'Converted': return 'success';
+      case 'Converted': 
+      case 'Won': return 'success';
       case 'Hot': return 'destructive';
       case 'Cold': return 'default';
       case 'Warm': return 'secondary';
+      case 'Lost': return 'destructive';
+      case 'Trial Completed': return 'success';
+      case 'Trial Scheduled': return 'warning';
+      case 'Open': return 'info';
       default: return 'default';
     }
   };
@@ -108,7 +128,16 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
       case 'Cold': 
         return <Clock className="h-4 w-4 text-blue-500" />;
       case 'Converted': 
+      case 'Won':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'Lost':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'Trial Completed':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'Trial Scheduled':
+        return <Calendar className="h-4 w-4 text-amber-500" />;
+      case 'Open':
+        return <AlertCircle className="h-4 w-4 text-blue-500" />;
       default: 
         return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
@@ -122,9 +151,13 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
       .toUpperCase()
       .substring(0, 2);
   };
+  
+  const hasFollowUpData = (lead: any) => {
+    return lead.followUp1Date || lead.followUp2Date || lead.followUp3Date || lead.followUp4Date;
+  };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
       {paginatedLeads.length > 0 ? (
         paginatedLeads.map(lead => (
           <Card
@@ -133,10 +166,11 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
             onClick={() => onLeadClick(lead)}
           >
             <div className={`h-1.5 w-full ${
-              lead.status === 'Hot' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
-              lead.status === 'Warm' ? 'bg-gradient-to-r from-amber-500 to-yellow-500' :
-              lead.status === 'Cold' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-              lead.status === 'Converted' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+              lead.status === 'Hot' || lead.status === 'Won' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+              lead.status === 'Warm' || lead.status === 'Trial Scheduled' ? 'bg-gradient-to-r from-amber-500 to-yellow-500' :
+              lead.status === 'Cold' || lead.status === 'Open' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+              lead.status === 'Converted' || lead.status === 'Trial Completed' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+              lead.status === 'Lost' ? 'bg-gradient-to-r from-red-700 to-rose-600' :
               'bg-gradient-to-r from-gray-300 to-gray-400'
             }`}></div>
             <CardHeader className="pb-2 flex flex-row justify-between items-start space-y-0 pt-4">
@@ -211,6 +245,12 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-2" />
                   <span>{formatDate(lead.createdAt)}</span>
                 </div>
+                {lead.center && (
+                  <div className="flex items-center text-sm">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground mr-2" />
+                    <span>{lead.center}</span>
+                  </div>
+                )}
               </div>
               <div className="pt-3 border-t border-border/30 text-sm">
                 <div className="flex justify-between items-center mb-1.5">
@@ -235,40 +275,71 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
                 </div>
               )}
               
-              {/* Follow-up Section */}
-              {(lead.followUp1Date || lead.followUp2Date || lead.followUp3Date || lead.followUp4Date) && (
+              {/* Follow-up Section - Collapsible */}
+              {hasFollowUpData(lead) && (
                 <div className="pt-3 border-t border-border/30">
-                  <details className="text-sm">
-                    <summary className="cursor-pointer text-xs text-muted-foreground font-medium">
-                      Follow-up History
-                    </summary>
-                    <div className="mt-2 space-y-2">
+                  <Collapsible className="text-sm w-full" open={expandedCards.includes(lead.id)}>
+                    <CollapsibleTrigger 
+                      className="flex items-center justify-between w-full cursor-pointer text-xs text-muted-foreground font-medium"
+                      onClick={(e) => toggleCardExpand(lead.id, e)}
+                    >
+                      <span>Follow-up History</span>
+                      {expandedCards.includes(lead.id) ? 
+                        <ChevronUp className="h-4 w-4" /> : 
+                        <ChevronDown className="h-4 w-4" />
+                      }
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-2">
                       {lead.followUp1Date && (
                         <div className="bg-muted/40 p-2 rounded-md text-xs">
-                          <div className="font-medium">{formatDate(lead.followUp1Date)}</div>
-                          <p className="mt-0.5">{lead.followUp1Comments || "No comments"}</p>
+                          <div className="font-medium flex items-center justify-between">
+                            <Badge variant="outline" className="bg-primary/5 py-1 px-2 text-xs">
+                              <Calendar className="mr-1 h-3 w-3" /> 
+                              {formatDate(lead.followUp1Date)}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">Follow-up 1</Badge>
+                          </div>
+                          <p className="mt-1.5">{lead.followUp1Comments || "No comments"}</p>
                         </div>
                       )}
                       {lead.followUp2Date && (
                         <div className="bg-muted/40 p-2 rounded-md text-xs">
-                          <div className="font-medium">{formatDate(lead.followUp2Date)}</div>
-                          <p className="mt-0.5">{lead.followUp2Comments || "No comments"}</p>
+                          <div className="font-medium flex items-center justify-between">
+                            <Badge variant="outline" className="bg-primary/5 py-1 px-2 text-xs">
+                              <Calendar className="mr-1 h-3 w-3" /> 
+                              {formatDate(lead.followUp2Date)}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">Follow-up 2</Badge>
+                          </div>
+                          <p className="mt-1.5">{lead.followUp2Comments || "No comments"}</p>
                         </div>
                       )}
                       {lead.followUp3Date && (
                         <div className="bg-muted/40 p-2 rounded-md text-xs">
-                          <div className="font-medium">{formatDate(lead.followUp3Date)}</div>
-                          <p className="mt-0.5">{lead.followUp3Comments || "No comments"}</p>
+                          <div className="font-medium flex items-center justify-between">
+                            <Badge variant="outline" className="bg-primary/5 py-1 px-2 text-xs">
+                              <Calendar className="mr-1 h-3 w-3" /> 
+                              {formatDate(lead.followUp3Date)}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">Follow-up 3</Badge>
+                          </div>
+                          <p className="mt-1.5">{lead.followUp3Comments || "No comments"}</p>
                         </div>
                       )}
                       {lead.followUp4Date && (
                         <div className="bg-muted/40 p-2 rounded-md text-xs">
-                          <div className="font-medium">{formatDate(lead.followUp4Date)}</div>
-                          <p className="mt-0.5">{lead.followUp4Comments || "No comments"}</p>
+                          <div className="font-medium flex items-center justify-between">
+                            <Badge variant="outline" className="bg-primary/5 py-1 px-2 text-xs">
+                              <Calendar className="mr-1 h-3 w-3" /> 
+                              {formatDate(lead.followUp4Date)}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">Follow-up 4</Badge>
+                          </div>
+                          <p className="mt-1.5">{lead.followUp4Comments || "No comments"}</p>
                         </div>
                       )}
-                    </div>
-                  </details>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
               )}
             </CardContent>

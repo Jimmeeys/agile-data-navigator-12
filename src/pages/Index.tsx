@@ -1,5 +1,5 @@
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,9 @@ import {
   Filter,
   SlidersHorizontal,
   Eye,
-  EyeOff
+  EyeOff,
+  HelpCircle,
+  Bell
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { SearchBar } from "@/components/SearchBar";
@@ -60,6 +62,16 @@ const Index = () => {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
   const [compactMode, setCompactMode] = useState(false);
+  const [activeTab, setActiveTab] = useState("leads-main");
+
+  useEffect(() => {
+    // Reset view when tab changes
+    if (activeTab === "leads-main") {
+      setSelectedView("table");
+    } else if (activeTab === "card-view") {
+      setSelectedView("card");
+    }
+  }, [activeTab]);
 
   const handleLeadClick = (lead: any) => {
     setSelectedLead(lead);
@@ -95,8 +107,6 @@ const Index = () => {
   };
 
   const handleDisplaySettings = () => {
-    const columns = settings.visibleColumns || [];
-    
     // Toggle compact mode
     updateSettings({
       ...settings,
@@ -169,7 +179,10 @@ const Index = () => {
               <span>Filters</span>
             </Button>
           </div>
-          <Button className="w-full sm:w-auto gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all">
+          <Button 
+            className="w-full sm:w-auto gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all"
+            onClick={handleAddNewLead}
+          >
             <Plus className="h-4 w-4" />
             <span>Add New Lead</span>
           </Button>
@@ -187,7 +200,12 @@ const Index = () => {
       </div>
 
       <div className="container flex-1 py-4 pb-8">
-        <Tabs defaultValue="leads-main" className="w-full">
+        <Tabs 
+          defaultValue="leads-main" 
+          className="w-full"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
             <TabsList className="grid grid-cols-4 md:grid-cols-7 w-full sm:w-auto bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm p-1 rounded-xl shadow-sm">
               <TabsTrigger value="leads-main" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500/20 data-[state=active]:to-purple-500/20 rounded-lg">
@@ -249,7 +267,7 @@ const Index = () => {
                       <div className="space-y-1">
                         <label className="text-sm font-medium">Visible Columns</label>
                         <div className="grid grid-cols-2 gap-2">
-                          {['fullName', 'email', 'phone', 'source', 'associate', 'stage', 'status'].map(col => (
+                          {['fullName', 'email', 'phone', 'source', 'associate', 'stage', 'status', 'center', 'remarks', 'createdAt'].map(col => (
                             <div key={col} className="flex items-center space-x-2">
                               <input
                                 type="checkbox"
@@ -265,7 +283,8 @@ const Index = () => {
                                 className="rounded border-gray-300"
                               />
                               <label htmlFor={`col-${col}`} className="text-sm capitalize">
-                                {col === 'fullName' ? 'Name' : col}
+                                {col === 'fullName' ? 'Name' : 
+                                 col === 'createdAt' ? 'Created' : col}
                               </label>
                             </div>
                           ))}
@@ -300,7 +319,12 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Lead Management</CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className={`gap-2 ${selectedView === "table" ? "bg-primary/10 text-primary" : ""}`} onClick={() => handleViewChange("table")}>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className={`gap-2 ${selectedView === "table" ? "bg-primary/10 text-primary" : ""}`} 
+                      onClick={() => handleViewChange("table")}
+                    >
                       <Table className={`h-4 w-4`} />
                       <span>Table</span>
                     </Button>
@@ -435,6 +459,3 @@ const Index = () => {
 };
 
 export default Index;
-
-// Add missing imports
-import { HelpCircle, Bell } from 'lucide-react';
