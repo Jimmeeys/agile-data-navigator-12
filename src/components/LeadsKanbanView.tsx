@@ -12,7 +12,29 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Mail, Phone, Plus, MoreHorizontal, Grip } from 'lucide-react';
+import { 
+  Mail, 
+  Phone, 
+  Plus, 
+  MoreHorizontal, 
+  Grip,
+  Calendar,
+  CalendarCheck,
+  BookmarkCheck,
+  User,
+  Users,
+  Globe,
+  Link,
+  Share2,
+  Building,
+  FileText,
+  CheckCircle,
+  XCircle,
+  Flag,
+  Target,
+  MessageSquare,
+  Clock
+} from 'lucide-react';
 import { formatDate, groupBy } from '@/lib/utils';
 
 interface LeadsKanbanViewProps {
@@ -173,6 +195,46 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     const index = group.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
     return colors[index];
   };
+
+  const getSourceIcon = (source: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      'Website': <Globe className="h-3.5 w-3.5" />,
+      'Referral': <Users className="h-3.5 w-3.5" />,
+      'Social Media': <Share2 className="h-3.5 w-3.5" />,
+      'Event': <Calendar className="h-3.5 w-3.5" />,
+      'Cold Call': <Phone className="h-3.5 w-3.5" />,
+      'Partner': <Building className="h-3.5 w-3.5" />,
+      'Email Campaign': <Mail className="h-3.5 w-3.5" />
+    };
+    return icons[source] || <Link className="h-3.5 w-3.5" />;
+  };
+
+  const getStageIcon = (stage: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      'Qualification': <Target className="h-3.5 w-3.5" />,
+      'Needs Analysis': <FileText className="h-3.5 w-3.5" />,
+      'Proposal': <FileText className="h-3.5 w-3.5" />,
+      'Negotiation': <MessageSquare className="h-3.5 w-3.5" />,
+      'Closed Won': <CheckCircle className="h-3.5 w-3.5" />,
+      'Closed Lost': <XCircle className="h-3.5 w-3.5" />
+    };
+    return icons[stage] || <Flag className="h-3.5 w-3.5" />;
+  };
+
+  // Get follow-up badges
+  const getFollowUpBadges = (lead: any) => {
+    const followUps = [];
+    for (let i = 1; i <= 4; i++) {
+      const dateField = `followUp${i}Date`;
+      if (lead[dateField]) {
+        followUps.push({
+          date: lead[dateField],
+          index: i
+        });
+      }
+    }
+    return followUps;
+  };
   
   if (loading) {
     return (
@@ -207,34 +269,43 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
         </div>
       </div>
       
-      <div className="flex gap-4 overflow-x-auto pb-4 pt-1 min-h-[500px] fancy-scrollbar">
+      <div className="kanban-board flex gap-4 pb-4 pt-1 min-h-[500px] overflow-x-auto fancy-scrollbar">
         {sortedGroups.map(group => (
-          <div key={group} className="kanban-column min-w-[280px] w-[280px]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <div className={`h-3 w-3 rounded-full bg-gradient-to-r ${getGroupColor(group)}`}></div>
-                <h3 className="text-sm font-medium">{group}</h3>
-                <Badge className="bg-muted/80 text-foreground">
-                  {groupedLeads[group].length}
-                </Badge>
+          <div key={group} className="kanban-column min-w-[280px] w-[280px] flex flex-col">
+            <div className={`sticky top-0 z-10 bg-gradient-to-r ${getGroupColor(group)} p-3 rounded-t-md text-white shadow-md`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-medium">{group}</h3>
+                  <Badge className="bg-white/30 text-white hover:bg-white/40">
+                    {groupedLeads[group].length}
+                  </Badge>
+                </div>
+                
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-white/70 hover:text-white hover:bg-white/20">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
               </div>
-              
-              <Button variant="ghost" size="icon" className="h-7 w-7">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
             </div>
             
-            <div className="space-y-3">
+            <div className="flex-1 space-y-3 p-3 bg-muted/20 rounded-b-md overflow-y-auto max-h-[80vh]">
               {groupedLeads[group].map(lead => (
                 <Card 
                   key={lead.id} 
-                  className="kanban-card shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  className="kanban-card shadow-sm hover:shadow-md transition-shadow cursor-pointer border-l-4"
+                  style={{
+                    borderLeftColor: `hsl(var(--${
+                      lead.status === 'Hot' ? 'destructive' : 
+                      lead.status === 'Warm' ? 'warning' : 
+                      lead.status === 'Cold' ? 'info' : 
+                      lead.status === 'Converted' ? 'success' : 'muted'
+                    }))`
+                  }}
                   onClick={() => onLeadClick(lead)}
                 >
                   <CardContent className="p-3">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center gap-2">
-                        <Avatar className="h-7 w-7">
+                        <Avatar className="h-8 w-8">
                           <AvatarFallback className={`text-xs text-white bg-gradient-to-br ${
                             groupByField === 'status' ? getGroupColor(lead.status) : getGroupColor(group)
                           }`}>
@@ -244,7 +315,15 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
                         <div className="space-y-1">
                           <h4 className="text-sm font-medium line-clamp-1">{lead.fullName}</h4>
                           {groupByField !== 'status' && lead.status && (
-                            <Badge variant={lead.status === 'Converted' ? 'success' : lead.status === 'Hot' ? 'destructive' : 'secondary'} className="text-xs">
+                            <Badge 
+                              variant={
+                                lead.status === 'Converted' ? 'success' : 
+                                lead.status === 'Hot' ? 'destructive' : 
+                                lead.status === 'Warm' ? 'warning' : 
+                                'secondary'
+                              } 
+                              className="text-xs"
+                            >
                               {lead.status}
                             </Badge>
                           )}
@@ -254,26 +333,64 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
                     
                     <div className="mt-2 text-xs space-y-1 text-muted-foreground">
                       {lead.email && (
-                        <div className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
+                        <div className="flex items-center gap-1 overflow-hidden">
+                          <Mail className="h-3 w-3 flex-shrink-0" />
                           <span className="truncate">{lead.email}</span>
                         </div>
                       )}
                       {lead.phone && (
                         <div className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
+                          <Phone className="h-3 w-3 flex-shrink-0" />
                           <span>{lead.phone}</span>
                         </div>
                       )}
                     </div>
                     
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">{formatDate(lead.createdAt)}</span>
-                      {groupByField !== 'stage' && (
-                        <Badge variant="outline" className="text-xs bg-secondary/30">
-                          {lead.stage}
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {lead.source && (
+                        <Badge variant="outline" className="text-xs flex items-center gap-1 bg-blue-50 dark:bg-blue-950/20">
+                          {getSourceIcon(lead.source)}
+                          <span>{lead.source}</span>
                         </Badge>
                       )}
+                      
+                      {groupByField !== 'stage' && lead.stage && (
+                        <Badge variant="outline" className="text-xs flex items-center gap-1 bg-purple-50 dark:bg-purple-950/20">
+                          {getStageIcon(lead.stage)}
+                          <span>{lead.stage}</span>
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {/* Follow-up badges */}
+                    {getFollowUpBadges(lead).length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {getFollowUpBadges(lead).map((followUp, idx) => (
+                          <Badge 
+                            key={idx}
+                            variant="outline" 
+                            className="text-xs flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/40"
+                          >
+                            <CalendarCheck className="h-3 w-3" />
+                            <span>Follow-up {followUp.index}: {formatDate(followUp.date)}</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDate(lead.createdAt)}
+                      </span>
+                      
+                      <div className="flex items-center">
+                        <Avatar className="h-5 w-5">
+                          <AvatarFallback className="text-[8px] bg-muted">
+                            {getInitials(lead.associate || 'NA')}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -290,6 +407,29 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
           </div>
         ))}
       </div>
+      
+      <style jsx global>{`
+        .kanban-board {
+          scroll-snap-type: x mandatory;
+        }
+        .kanban-column {
+          scroll-snap-align: start;
+        }
+        .fancy-scrollbar::-webkit-scrollbar {
+          height: 8px;
+        }
+        .fancy-scrollbar::-webkit-scrollbar-track {
+          background: hsl(var(--muted));
+          border-radius: 4px;
+        }
+        .fancy-scrollbar::-webkit-scrollbar-thumb {
+          background: hsl(var(--muted-foreground));
+          border-radius: 4px;
+        }
+        .fancy-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--primary));
+        }
+      `}</style>
     </div>
   );
 }

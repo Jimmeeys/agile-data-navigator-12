@@ -20,7 +20,9 @@ import {
   Grid3X3,
   Upload,
   Filter,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { SearchBar } from "@/components/SearchBar";
@@ -36,14 +38,27 @@ import { LeadAnalytics } from "@/components/LeadAnalytics";
 import { AIInsightsView } from "@/components/AIInsightsView";
 import { useLeads } from "@/contexts/LeadContext";
 import { PaginationControls } from "@/components/PaginationControls";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Index = () => {
-  const { refreshData, isRefreshing } = useLeads();
+  const { refreshData, isRefreshing, settings, updateSettings } = useLeads();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedView, setSelectedView] = useState<string>("table");
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
   const [selectedLeads, setSelectedLeads] = useState<string[]>([]);
+  const [compactMode, setCompactMode] = useState(false);
 
   const handleLeadClick = (lead: any) => {
     setSelectedLead(lead);
@@ -59,9 +74,28 @@ const Index = () => {
     setSelectedView(view);
   };
 
+  const handleDisplaySettings = () => {
+    const columns = settings.visibleColumns || [];
+    
+    // Toggle compact mode
+    updateSettings({
+      ...settings,
+      rowHeight: compactMode ? 48 : 36,
+    });
+    
+    setCompactMode(!compactMode);
+    
+    toast.success(`${compactMode ? 'Standard' : 'Compact'} view enabled`);
+  };
+
+  const handleSettingsClick = () => {
+    // Open settings panel
+    toast.success("Settings panel opened");
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900/80 dark:to-gray-900">
-      <header className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b backdrop-blur-sm bg-white/80 dark:bg-gray-900/80">
+      <header className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b backdrop-blur-sm bg-white/80 dark:bg-gray-900/80">
         <div className="container py-3">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent">Lead Management Portal</h1>
@@ -70,9 +104,32 @@ const Index = () => {
                 <Clock className="w-4 h-4" />
                 <span className="hidden sm:inline">Last updated 2 min ago</span>
               </Button>
-              <Button variant="outline" size="sm" className="w-9 h-9 p-0">
-                <Settings className="w-4 h-4" />
-              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-9 h-9 p-0">
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleSettingsClick}>
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>User Preferences</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.success("API settings opened")}>
+                    <GitBranch className="mr-2 h-4 w-4" />
+                    <span>API Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.success("Notifications opened")}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>Notifications</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => toast.success("Help center opened")}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    <span>Help Center</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>
@@ -144,10 +201,61 @@ const Index = () => {
             </TabsList>
 
             <div className="flex gap-2 w-full sm:w-auto">
-              <Button variant="outline" size="sm" className="gap-2">
-                <SlidersHorizontal className="w-4 h-4" />
-                <span>Display</span>
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <SlidersHorizontal className="w-4 h-4" />
+                    <span>Display</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Display Settings</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Row Display</span>
+                        <Button variant="outline" size="sm" onClick={handleDisplaySettings}>
+                          {compactMode ? (
+                            <Eye className="mr-2 h-4 w-4" />
+                          ) : (
+                            <EyeOff className="mr-2 h-4 w-4" />
+                          )}
+                          {compactMode ? 'Standard View' : 'Compact View'}
+                        </Button>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Visible Columns</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['fullName', 'email', 'phone', 'source', 'associate', 'stage', 'status'].map(col => (
+                            <div key={col} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`col-${col}`}
+                                checked={settings.visibleColumns?.includes(col)}
+                                onChange={(e) => {
+                                  const visibleColumns = e.target.checked
+                                    ? [...(settings.visibleColumns || []), col]
+                                    : (settings.visibleColumns || []).filter(c => c !== col);
+                                  
+                                  updateSettings({ ...settings, visibleColumns });
+                                }}
+                                className="rounded border-gray-300"
+                              />
+                              <label htmlFor={`col-${col}`} className="text-sm capitalize">
+                                {col === 'fullName' ? 'Name' : col}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
               {selectedLeads.length > 0 && (
                 <Button size="sm" className="gap-2" onClick={handleBulkEdit}>
                   <Users className="w-4 h-4" />
@@ -172,8 +280,8 @@ const Index = () => {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">Lead Management</CardTitle>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-2" onClick={() => handleViewChange("table")}>
-                      <Table className={`h-4 w-4 ${selectedView === "table" ? "text-primary" : ""}`} />
+                    <Button variant="outline" size="sm" className={`gap-2 ${selectedView === "table" ? "bg-primary/10 text-primary" : ""}`} onClick={() => handleViewChange("table")}>
+                      <Table className={`h-4 w-4`} />
                       <span>Table</span>
                     </Button>
                   </div>
@@ -189,6 +297,7 @@ const Index = () => {
                 onLeadClick={handleLeadClick} 
                 selectedLeads={selectedLeads}
                 setSelectedLeads={setSelectedLeads}
+                compactMode={compactMode}
               />
               <div className="mt-4">
                 <PaginationControls />
@@ -306,3 +415,6 @@ const Index = () => {
 };
 
 export default Index;
+
+// Add missing imports
+import { HelpCircle, Bell } from 'lucide-react';

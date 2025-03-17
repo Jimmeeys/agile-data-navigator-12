@@ -1,516 +1,416 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import React, { useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CirclePlus, FileSpreadsheet, HelpCircle, Trash2, Upload, X } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/components/ui/use-toast';
-import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
+import { 
+  PlusCircle, 
+  Upload, 
+  FileText, 
+  Check, 
+  AlertTriangle, 
+  ArrowRight, 
+  Download,
+  Table,
+  Settings
+} from 'lucide-react';
+import { useLeads } from '@/contexts/LeadContext';
+import { importLeadsFromCSV } from '@/services/googleSheets';
+import { toast } from 'sonner';
+import Papa from 'papaparse';
 
 export function CSVUploadView() {
-  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [previewData, setPreviewData] = useState<string[][]>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [mappings, setMappings] = useState<Record<string, string>>({});
-  const [exclusionRules, setExclusionRules] = useState<{column: string, value: string}[]>([]);
-  const [processingOptions, setProcessingOptions] = useState({
-    skipFirstRow: true,
-    trimWhitespace: true,
-    removeEmptyRows: true,
-    processingMethod: 'append',
-    dateFormat: 'MM/DD/YYYY'
-  });
-  const [progress, setProgress] = useState<number | null>(null);
-  const [step, setStep] = useState<'upload' | 'mapping' | 'exclusions' | 'processing'>('upload');
-
-  const leadColumns = [
-    { value: 'fullName', label: 'Full Name' },
-    { value: 'email', label: 'Email' },
-    { value: 'phone', label: 'Phone' },
-    { value: 'source', label: 'Source' },
-    { value: 'status', label: 'Status' },
-    { value: 'stage', label: 'Stage' },
-    { value: 'associate', label: 'Associate' },
-    { value: 'createdAt', label: 'Created At' },
-    { value: 'lastContact', label: 'Last Contact' },
-    { value: 'remarks', label: 'Remarks' }
-  ];
-
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [sheetHeaders, setSheetHeaders] = useState<string[]>([
+    'Full Name', 'Email', 'Phone', 'Source', 'Associate', 'Center', 'Stage', 'Status', 
+    'Created At', 'Remarks', 'Follow Up 1 Date', 'Follow Up Comments (1)', 
+    'Follow Up 2 Date', 'Follow Up Comments (2)', 'Follow Up 3 Date', 
+    'Follow Up Comments (3)', 'Follow Up 4 Date', 'Follow Up Comments (4)'
+  ]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [progress, setProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const { refreshData } = useLeads();
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] || null;
-    setFile(selectedFile);
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
     
-    if (selectedFile) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const csv = event.target?.result as string;
-        const lines = csv.split('\n');
-        const data = lines.map(line => line.split(',').map(cell => cell.trim()));
+    setFile(selectedFile);
+    setParseError(null);
+    setProgress(10);
+    
+    // Parse CSV
+    Papa.parse(selectedFile, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        if (results.errors.length > 0) {
+          setParseError(results.errors[0].message);
+          setProgress(0);
+          return;
+        }
         
-        if (data.length > 0) {
-          const csvHeaders = data[0];
-          setHeaders(csvHeaders);
-          setPreviewData(data.slice(1, 6)); // Preview first 5 rows
+        setCsvData(results.data);
+        setCsvHeaders(Object.keys(results.data[0] || {}));
+        
+        // Initialize mapping for matching header names
+        const initialMapping: Record<string, string> = {};
+        
+        // Try to match headers automatically
+        csvHeaders.forEach(csvHeader => {
+          // Look for exact match first
+          const exactMatch = sheetHeaders.find(
+            sheetHeader => sheetHeader.toLowerCase() === csvHeader.toLowerCase()
+          );
           
-          // Create initial mappings
-          const initialMappings: Record<string, string> = {};
-          csvHeaders.forEach(header => {
-            // Try to find matching column
-            const matchingColumn = leadColumns.find(col => 
-              col.label.toLowerCase() === header.toLowerCase() || 
-              col.value.toLowerCase() === header.toLowerCase()
+          if (exactMatch) {
+            initialMapping[csvHeader] = exactMatch;
+          } else {
+            // Look for partial match
+            const partialMatch = sheetHeaders.find(
+              sheetHeader => sheetHeader.toLowerCase().includes(csvHeader.toLowerCase()) ||
+                            csvHeader.toLowerCase().includes(sheetHeader.toLowerCase())
             );
-            initialMappings[header] = matchingColumn?.value || '';
-          });
-          setMappings(initialMappings);
-        }
-      };
-      reader.readAsText(selectedFile);
-    } else {
-      setPreviewData([]);
-      setHeaders([]);
-      setMappings({});
-    }
+            
+            if (partialMatch) {
+              initialMapping[csvHeader] = partialMatch;
+            }
+          }
+        });
+        
+        setColumnMapping(initialMapping);
+        setProgress(40);
+      },
+      error: (error) => {
+        setParseError(error.message);
+        setProgress(0);
+      }
+    });
   };
-
-  const handleAddExclusionRule = () => {
-    setExclusionRules([...exclusionRules, { column: '', value: '' }]);
+  
+  const handleMappingChange = (csvHeader: string, sheetHeader: string) => {
+    setColumnMapping(prev => ({
+      ...prev,
+      [csvHeader]: sheetHeader
+    }));
   };
-
-  const handleRemoveExclusionRule = (index: number) => {
-    setExclusionRules(exclusionRules.filter((_, i) => i !== index));
-  };
-
-  const updateExclusionRule = (index: number, field: 'column' | 'value', value: string) => {
-    const updatedRules = [...exclusionRules];
-    updatedRules[index][field] = value;
-    setExclusionRules(updatedRules);
-  };
-
-  const handleUpload = () => {
-    // Simulate upload process
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev === null) return 0;
-        if (prev >= 100) {
-          clearInterval(interval);
-          toast({
-            title: "Upload Successful",
-            description: "Your CSV data has been processed successfully.",
-          });
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
-  };
-
-  const handleNextStep = () => {
-    if (step === 'upload' && !file) {
-      toast({
-        variant: "destructive",
-        title: "No file selected",
-        description: "Please select a CSV file to upload.",
-      });
+  
+  const handleUpload = async () => {
+    if (!file || Object.keys(columnMapping).length === 0) {
+      toast.error('Please select a file and map at least one column');
       return;
     }
     
-    if (step === 'upload') setStep('mapping');
-    else if (step === 'mapping') setStep('exclusions');
-    else if (step === 'exclusions') setStep('processing');
-    else if (step === 'processing') handleUpload();
+    setIsUploading(true);
+    setProgress(50);
+    
+    try {
+      // Convert CSV data to string format for import
+      const csvString = await file.text();
+      
+      // Import data
+      await importLeadsFromCSV(csvString, columnMapping);
+      
+      setProgress(100);
+      toast.success('Leads imported successfully');
+      
+      // Refresh data
+      await refreshData();
+      
+      // Reset form
+      setFile(null);
+      setCsvData([]);
+      setCsvHeaders([]);
+      setColumnMapping({});
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Error importing leads:', error);
+      toast.error('Failed to import leads: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsUploading(false);
+    }
   };
-
-  const handlePrevStep = () => {
-    if (step === 'mapping') setStep('upload');
-    else if (step === 'exclusions') setStep('mapping');
-    else if (step === 'processing') setStep('exclusions');
+  
+  const handleDownloadTemplate = () => {
+    // Create template CSV content
+    const headers = sheetHeaders.join(',');
+    const template = headers + '\n' + ','.repeat(sheetHeaders.length - 1);
+    
+    // Create download
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'leads_template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
   };
-
+  
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-1 text-sm">
-        <span className={step === 'upload' ? 'font-medium text-primary' : 'text-muted-foreground'}>
-          Upload File
-        </span>
-        <span className="mx-2 text-muted-foreground">→</span>
-        <span className={step === 'mapping' ? 'font-medium text-primary' : 'text-muted-foreground'}>
-          Column Mapping
-        </span>
-        <span className="mx-2 text-muted-foreground">→</span>
-        <span className={step === 'exclusions' ? 'font-medium text-primary' : 'text-muted-foreground'}>
-          Exclusion Rules
-        </span>
-        <span className="mx-2 text-muted-foreground">→</span>
-        <span className={step === 'processing' ? 'font-medium text-primary' : 'text-muted-foreground'}>
-          Processing Options
-        </span>
-      </div>
-
-      {step === 'upload' && (
-        <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl">Upload CSV File</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-              <FileSpreadsheet className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <div className="space-y-3">
-                <h3 className="font-medium">Drag and drop your CSV file here</h3>
-                <p className="text-sm text-muted-foreground">or</p>
-                <div>
-                  <Label 
-                    htmlFor="csv-upload" 
-                    className="inline-flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Browse Files
-                  </Label>
-                  <Input 
-                    id="csv-upload"
-                    type="file" 
-                    accept=".csv" 
-                    onChange={handleFileChange} 
+      <Tabs defaultValue="upload" className="w-full">
+        <TabsList>
+          <TabsTrigger value="upload" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            <span>Upload CSV</span>
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            <span>Import Settings</span>
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <Table className="h-4 w-4" />
+            <span>Import History</span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="upload">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded-md cursor-pointer hover:bg-muted/50 transition-colors">
+                  <FileText className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground mb-1">Drag and drop CSV file here, or click to browse</p>
+                  <p className="text-xs text-muted-foreground">Supported format: .csv</p>
+                  
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv"
                     className="hidden"
+                    onChange={handleFileChange}
                   />
-                </div>
-              </div>
-            </div>
-            
-            {file && (
-              <div className="bg-primary/10 rounded-lg p-4 flex justify-between items-center">
-                <div className="flex items-center">
-                  <FileSpreadsheet className="w-6 h-6 mr-2 text-primary" />
-                  <span>{file.name}</span>
-                </div>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setFile(null)}
-                  className="h-8 w-8 p-0 rounded-full"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-            
-            {previewData.length > 0 && (
-              <div className="border rounded-lg overflow-hidden">
-                <div className="text-sm font-medium p-3 bg-muted/50">
-                  Preview (first 5 rows)
-                </div>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {headers.map((header, index) => (
-                          <TableHead key={index}>{header}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {previewData.map((row, rowIndex) => (
-                        <TableRow key={rowIndex}>
-                          {row.map((cell, cellIndex) => (
-                            <TableCell key={cellIndex}>{cell}</TableCell>
-                          ))}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button disabled={!file} onClick={handleNextStep}>
-              Next: Column Mapping
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {step === 'mapping' && (
-        <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl">Column Mapping</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Alert className="bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300 border-blue-200 dark:border-blue-800/30">
-              <HelpCircle className="h-4 w-4" />
-              <AlertTitle>Map CSV columns to lead fields</AlertTitle>
-              <AlertDescription>
-                Match each column from your CSV file to the corresponding field in the leads database.
-                Unmapped columns will be ignored during import.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-1/3">CSV Column</TableHead>
-                    <TableHead className="w-1/3">Maps To</TableHead>
-                    <TableHead className="w-1/3">Preview</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {headers.map((header, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{header}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={mappings[header] || ''}
-                          onValueChange={(value) => setMappings({...mappings, [header]: value})}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select field" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="">-- Ignore this column --</SelectItem>
-                            {leadColumns.map(col => (
-                              <SelectItem key={col.value} value={col.value}>{col.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {previewData.length > 0 ? previewData[0][index] : ''}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handlePrevStep}>
-              Back
-            </Button>
-            <Button onClick={handleNextStep}>
-              Next: Exclusion Rules
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {step === 'exclusions' && (
-        <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl">Exclusion Rules</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Alert className="bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300 border-amber-200 dark:border-amber-800/30">
-              <HelpCircle className="h-4 w-4" />
-              <AlertTitle>Define exclusion criteria</AlertTitle>
-              <AlertDescription>
-                Specify which rows should be excluded from import. If a row contains the specified value in the selected column,
-                it will be skipped during import.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="space-y-4">
-              {exclusionRules.map((rule, index) => (
-                <div key={index} className="flex gap-3 items-start">
-                  <div className="grid gap-2 flex-1">
-                    <Label>Column</Label>
-                    <Select
-                      value={rule.column}
-                      onValueChange={(value) => updateExclusionRule(index, 'column', value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select column" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {headers.map((header, i) => (
-                          <SelectItem key={i} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2 flex-1">
-                    <Label>Value to exclude</Label>
-                    <Input
-                      value={rule.value}
-                      onChange={(e) => updateExclusionRule(index, 'value', e.target.value)}
-                      placeholder="Value to exclude"
-                    />
-                  </div>
+                  
                   <Button
-                    variant="ghost"
-                    size="icon"
-                    className="mt-8"
-                    onClick={() => handleRemoveExclusionRule(index)}
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Select File
                   </Button>
+                  
+                  {file && (
+                    <div className="mt-4 flex items-center gap-2 text-sm">
+                      <Check className="h-4 w-4 text-green-500" />
+                      <span>{file.name}</span>
+                    </div>
+                  )}
+                  
+                  {parseError && (
+                    <div className="mt-4 flex items-center gap-2 text-sm text-destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>{parseError}</span>
+                    </div>
+                  )}
                 </div>
-              ))}
-
-              <Button variant="secondary" className="gap-2" onClick={handleAddExclusionRule}>
-                <CirclePlus className="h-4 w-4" />
-                Add Exclusion Rule
-              </Button>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handlePrevStep}>
-              Back
-            </Button>
-            <Button onClick={handleNextStep}>
-              Next: Processing Options
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
-
-      {step === 'processing' && (
-        <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-900/90 shadow-md">
-          <CardHeader>
-            <CardTitle className="text-xl">Processing Options</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Skip header row</Label>
-                  <p className="text-sm text-muted-foreground">Don't import the first row (column headers)</p>
-                </div>
-                <Switch
-                  checked={processingOptions.skipFirstRow}
-                  onCheckedChange={(checked) => 
-                    setProcessingOptions({...processingOptions, skipFirstRow: checked})
-                  }
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Trim whitespace</Label>
-                  <p className="text-sm text-muted-foreground">Remove extra spaces from beginning and end of fields</p>
-                </div>
-                <Switch
-                  checked={processingOptions.trimWhitespace}
-                  onCheckedChange={(checked) => 
-                    setProcessingOptions({...processingOptions, trimWhitespace: checked})
-                  }
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Remove empty rows</Label>
-                  <p className="text-sm text-muted-foreground">Skip rows where all fields are empty</p>
-                </div>
-                <Switch
-                  checked={processingOptions.removeEmptyRows}
-                  onCheckedChange={(checked) => 
-                    setProcessingOptions({...processingOptions, removeEmptyRows: checked})
-                  }
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="space-y-2">
-                <Label>Date format</Label>
-                <RadioGroup
-                  value={processingOptions.dateFormat}
-                  onValueChange={(value) => 
-                    setProcessingOptions({...processingOptions, dateFormat: value})
-                  }
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="MM/DD/YYYY" id="date-1" />
-                    <Label htmlFor="date-1">MM/DD/YYYY</Label>
+                
+                {file && csvHeaders.length > 0 && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-medium">Map CSV Columns to Lead Fields</h3>
+                      <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Template
+                      </Button>
+                    </div>
+                    
+                    <div className="max-h-[300px] overflow-y-auto border rounded-md">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50 sticky top-0">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-medium">CSV Column</th>
+                            <th className="px-4 py-2 text-left font-medium">Lead Field</th>
+                            <th className="px-4 py-2 text-left font-medium">Sample Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {csvHeaders.map((header, index) => (
+                            <tr key={index} className="bg-card">
+                              <td className="px-4 py-2 font-medium">{header}</td>
+                              <td className="px-4 py-2">
+                                <select
+                                  className="w-full p-2 rounded-md border border-input bg-background text-sm"
+                                  value={columnMapping[header] || ''}
+                                  onChange={(e) => handleMappingChange(header, e.target.value)}
+                                >
+                                  <option value="">-- Select Field --</option>
+                                  {sheetHeaders.map((sheetHeader, idx) => (
+                                    <option key={idx} value={sheetHeader}>
+                                      {sheetHeader}
+                                    </option>
+                                  ))}
+                                </select>
+                              </td>
+                              <td className="px-4 py-2 text-muted-foreground truncate max-w-[200px]">
+                                {csvData[0]?.[header] || ''}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Import Progress</Label>
+                          <span className="text-xs text-muted-foreground">{progress}%</span>
+                        </div>
+                        <Progress value={progress} className="h-2" />
+                      </div>
+                      
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setFile(null);
+                            setCsvData([]);
+                            setCsvHeaders([]);
+                            setColumnMapping({});
+                            setProgress(0);
+                            if (fileInputRef.current) {
+                              fileInputRef.current.value = '';
+                            }
+                          }}
+                          disabled={isUploading}
+                        >
+                          Reset
+                        </Button>
+                        <Button
+                          onClick={handleUpload}
+                          disabled={isUploading || Object.keys(columnMapping).length === 0}
+                          className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                        >
+                          {isUploading ? (
+                            <>
+                              <div className="animate-spin h-4 w-4 rounded-full border-2 border-t-transparent mr-2"></div>
+                              Importing...
+                            </>
+                          ) : (
+                            <>
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              Import {csvData.length} Leads
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="DD/MM/YYYY" id="date-2" />
-                    <Label htmlFor="date-2">DD/MM/YYYY</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="YYYY-MM-DD" id="date-3" />
-                    <Label htmlFor="date-3">YYYY-MM-DD</Label>
-                  </div>
-                </RadioGroup>
+                )}
               </div>
-              
-              <Separator />
-              
-              <div className="space-y-2">
-                <Label>Processing method</Label>
-                <Select
-                  value={processingOptions.processingMethod}
-                  onValueChange={(value) => 
-                    setProcessingOptions({...processingOptions, processingMethod: value as any})
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="append">Append - Add all new records</SelectItem>
-                    <SelectItem value="update">Update - Update existing records and add new ones</SelectItem>
-                    <SelectItem value="replace">Replace - Delete existing data and import new data</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            {progress !== null && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Uploading...</span>
-                  <span>{progress}%</span>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Import Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="duplicate-handling">Duplicate Handling</Label>
+                  <select
+                    id="duplicate-handling"
+                    className="w-full mt-1 p-2 rounded-md border border-input bg-background"
+                  >
+                    <option value="skip">Skip duplicates</option>
+                    <option value="update">Update existing records</option>
+                    <option value="create">Create new records</option>
+                  </select>
                 </div>
-                <div className="w-full bg-secondary rounded-full h-2.5">
-                  <div 
-                    className="bg-primary h-2.5 rounded-full transition-all duration-300"
-                    style={{ width: `${progress}%` }}
-                  ></div>
+                
+                <div>
+                  <Label htmlFor="date-format">Date Format</Label>
+                  <select
+                    id="date-format"
+                    className="w-full mt-1 p-2 rounded-md border border-input bg-background"
+                  >
+                    <option value="yyyy-MM-dd">YYYY-MM-DD</option>
+                    <option value="MM/dd/yyyy">MM/DD/YYYY</option>
+                    <option value="dd/MM/yyyy">DD/MM/YYYY</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="auto-map"
+                    className="rounded border border-input"
+                  />
+                  <Label htmlFor="auto-map">Auto-map columns by name</Label>
+                </div>
+                
+                <Button className="w-full">Save Settings</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="history">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Import History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="border rounded-md divide-y">
+                  <div className="p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">leads_batch_1.csv</h3>
+                      <p className="text-sm text-muted-foreground">Imported 42 leads</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">4 hours ago</p>
+                      <Badge className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300">Success</Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">leads_batch_2.csv</h3>
+                      <p className="text-sm text-muted-foreground">Imported 18 leads</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">Yesterday</p>
+                      <Badge className="bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300">Success</Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">leads_batch_3.csv</h3>
+                      <p className="text-sm text-muted-foreground">Failed to import</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm">2 days ago</p>
+                      <Badge className="bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300">Failed</Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <Button variant="outline">Load More</Button>
                 </div>
               </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button variant="outline" onClick={handlePrevStep}>
-              Back
-            </Button>
-            <Button 
-              onClick={handleUpload} 
-              disabled={progress !== null}
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
-            >
-              {progress === null ? (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Start Import
-                </>
-              ) : progress === 100 ? (
-                "Import Complete"
-              ) : (
-                "Importing..."
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
-
-export default CSVUploadView;

@@ -29,10 +29,18 @@ import {
   Calendar, 
   Check, 
   AlertTriangle, 
-  User 
+  User,
+  MessageSquare,
+  CalendarCheck,
+  CalendarClock,
+  Bookmark,
+  BookmarkCheck,
+  FileEdit,
+  Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatDate } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { formatDate, parseDate } from '@/lib/utils';
 
 interface EditLeadModalProps {
   isOpen: boolean;
@@ -105,6 +113,93 @@ export function EditLeadModal({
       setLoading(false);
     }
   };
+
+  // Get source color based on source name
+  const getSourceColor = (source: string) => {
+    const colorMap: Record<string, string> = {
+      'Website': 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300',
+      'Referral': 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300',
+      'Social Media': 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300',
+      'Event': 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300',
+      'Cold Call': 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300',
+      'Partner': 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-300',
+      'Email Campaign': 'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-900/30 dark:text-cyan-300',
+    };
+    return colorMap[source] || 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300';
+  };
+
+  // Get stage color based on stage name
+  const getStageColor = (stage: string) => {
+    const colorMap: Record<string, string> = {
+      'Qualification': 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300',
+      'Needs Analysis': 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-900/30 dark:text-indigo-300',
+      'Proposal': 'bg-violet-100 text-violet-800 border-violet-300 dark:bg-violet-900/30 dark:text-violet-300',
+      'Negotiation': 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900/30 dark:text-amber-300',
+      'Closed Won': 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-300',
+      'Closed Lost': 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-300',
+    };
+    return colorMap[stage] || 'bg-gray-100 text-gray-800 border-gray-300 dark:bg-gray-800/50 dark:text-gray-300';
+  };
+
+  // Get source icon based on source name
+  const getSourceIcon = (source: string) => {
+    const sourceIconMap: Record<string, React.ReactNode> = {
+      'Website': <Globe className="h-3.5 w-3.5" />,
+      'Referral': <Users className="h-3.5 w-3.5" />,
+      'Social Media': <Share2 className="h-3.5 w-3.5" />,
+      'Event': <CalendarDays className="h-3.5 w-3.5" />,
+      'Cold Call': <Phone className="h-3.5 w-3.5" />,
+      'Partner': <Building className="h-3.5 w-3.5" />,
+      'Email Campaign': <Mail className="h-3.5 w-3.5" />,
+    };
+    return sourceIconMap[source] || <Globe className="h-3.5 w-3.5" />;
+  };
+
+  // Get stage icon based on stage name
+  const getStageIcon = (stage: string) => {
+    const stageIconMap: Record<string, React.ReactNode> = {
+      'Qualification': <Search className="h-3.5 w-3.5" />,
+      'Needs Analysis': <Clipboard className="h-3.5 w-3.5" />,
+      'Proposal': <FileText className="h-3.5 w-3.5" />,
+      'Negotiation': <BadgeDollarSign className="h-3.5 w-3.5" />,
+      'Closed Won': <CheckCircle className="h-3.5 w-3.5" />,
+      'Closed Lost': <XCircle className="h-3.5 w-3.5" />,
+    };
+    return stageIconMap[stage] || <Flag className="h-3.5 w-3.5" />;
+  };
+  
+  // Extract follow-up data from the lead
+  const getFollowUps = () => {
+    if (!lead) return [];
+    
+    const followUps = [];
+    for (let i = 1; i <= 4; i++) {
+      const dateField = `followUp${i}Date`;
+      const commentsField = `followUpComments${i}`;
+      
+      if (lead[dateField]) {
+        followUps.push({
+          id: i,
+          date: lead[dateField],
+          comments: lead[commentsField] || '',
+        });
+      }
+    }
+    
+    return followUps;
+  };
+
+  // Update a specific follow-up field
+  const handleFollowUpChange = (index: number, field: 'date' | 'comments', value: string) => {
+    const dateField = `followUp${index}Date`;
+    const commentsField = `followUpComments${index}`;
+    
+    if (field === 'date') {
+      setFormData(prev => ({ ...prev, [dateField]: value }));
+    } else {
+      setFormData(prev => ({ ...prev, [commentsField]: value }));
+    }
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -125,7 +220,7 @@ export function EditLeadModal({
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid grid-cols-2 mb-4">
               <TabsTrigger value="details" className="text-sm">Lead Details</TabsTrigger>
-              <TabsTrigger value="history" className="text-sm">Activity History</TabsTrigger>
+              <TabsTrigger value="history" className="text-sm">Activity & Follow-ups</TabsTrigger>
             </TabsList>
             
             <TabsContent value="details" className="space-y-4">
@@ -203,12 +298,18 @@ export function EditLeadModal({
                     </SelectTrigger>
                     <SelectContent>
                       {sourceOptions.map((option) => (
-                        <SelectItem key={option} value={option}>
+                        <SelectItem key={option} value={option} className="flex items-center gap-2">
                           {option}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {formData.source && (
+                    <Badge className={`mt-1 flex items-center gap-1 ${getSourceColor(formData.source)}`}>
+                      {getSourceIcon(formData.source)}
+                      <span>{formData.source}</span>
+                    </Badge>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -249,6 +350,12 @@ export function EditLeadModal({
                       ))}
                     </SelectContent>
                   </Select>
+                  {formData.stage && (
+                    <Badge className={`mt-1 flex items-center gap-1 ${getStageColor(formData.stage)}`}>
+                      {getStageIcon(formData.stage)}
+                      <span>{formData.stage}</span>
+                    </Badge>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
@@ -291,7 +398,10 @@ export function EditLeadModal({
                   {lead ? (
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Activity History</h4>
+                        <h4 className="font-medium flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Activity History
+                        </h4>
                         <Button variant="outline" size="sm">View All</Button>
                       </div>
                       
@@ -314,6 +424,59 @@ export function EditLeadModal({
                               <p className="text-xs text-muted-foreground">Initial status: {lead.status}</p>
                             </div>
                           </div>
+                        </div>
+                      </div>
+                      
+                      <div className="border-t pt-4 mt-6">
+                        <h4 className="font-medium flex items-center gap-2 mb-4">
+                          <BookmarkCheck className="h-4 w-4" />
+                          Follow-up Schedule
+                        </h4>
+                        
+                        <div className="space-y-4">
+                          {[1, 2, 3, 4].map((index) => {
+                            const dateField = `followUp${index}Date`;
+                            const commentsField = `followUpComments${index}`;
+                            return (
+                              <div key={index} className="p-3 rounded-md border bg-muted/5 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <Label htmlFor={dateField} className="text-sm flex items-center gap-1">
+                                    <CalendarCheck className="h-4 w-4 text-indigo-500" />
+                                    Follow-up {index}
+                                  </Label>
+                                  <Badge variant="outline" className="text-xs">
+                                    {formData[dateField] ? 'Scheduled' : 'Not Set'}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="relative">
+                                  <Input
+                                    id={dateField}
+                                    name={dateField}
+                                    type="date"
+                                    value={formData[dateField] || ''}
+                                    onChange={(e) => handleFollowUpChange(index, 'date', e.target.value)}
+                                    className="pl-9"
+                                  />
+                                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                </div>
+                                
+                                <div className="relative">
+                                  <Textarea
+                                    id={commentsField}
+                                    name={commentsField}
+                                    value={formData[commentsField] || ''}
+                                    onChange={(e) => handleFollowUpChange(index, 'comments', e.target.value)}
+                                    placeholder={`Follow-up ${index} comments`}
+                                    rows={2}
+                                    className="resize-none pl-9 pt-8"
+                                  />
+                                  <MessageSquare className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                  <span className="absolute left-9 top-2 text-xs font-medium">Comments</span>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -353,3 +516,19 @@ export function EditLeadModal({
     </Dialog>
   );
 }
+
+// Add missing imports for icons
+import { 
+  Globe, 
+  Users, 
+  Share2, 
+  CalendarDays, 
+  Building, 
+  Search, 
+  Clipboard, 
+  FileText, 
+  BadgeDollarSign, 
+  CheckCircle, 
+  XCircle, 
+  Flag 
+} from 'lucide-react';

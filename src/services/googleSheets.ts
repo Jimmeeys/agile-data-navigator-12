@@ -1,10 +1,10 @@
-
 import { debounce } from "@/lib/utils";
+import Papa from 'papaparse';
 
 // Google Sheets API configuration
 const SPREADSHEET_ID = '1dQMNF69WnXVQdhlLvUZTig3kL97NA21k6eZ9HRu6xiQ';
 const SHEET_NAME = '◉ Leads';
-const SHEET_RANGE = `${SHEET_NAME}!A:Z`;
+const SHEET_RANGE = `${SHEET_NAME}!A:AF`; // Extended range to include follow-ups (A to AF)
 
 // OAuth credentials
 const CLIENT_ID = '416630995185-007ermh3iidknbbtdmu5vct207mdlbaa.apps.googleusercontent.com';
@@ -33,6 +33,14 @@ export interface Lead {
   remarks: string;
   followUp: string;
   lastContact: string;
+  followUp1Date?: string;
+  followUpComments1?: string;
+  followUp2Date?: string;
+  followUpComments2?: string;
+  followUp3Date?: string;
+  followUpComments3?: string;
+  followUp4Date?: string;
+  followUpComments4?: string;
   [key: string]: any; // For any additional fields
 }
 
@@ -108,7 +116,14 @@ function mapHeaderToKey(header: string): string {
     'Created At': 'createdAt',
     'Last Contact': 'lastContact',
     'Follow Up': 'followUp',
-    // Add more mappings as needed
+    'Follow Up 1 Date': 'followUp1Date',
+    'Follow Up Comments (1)': 'followUpComments1',
+    'Follow Up 2 Date': 'followUp2Date',
+    'Follow Up Comments (2)': 'followUpComments2',
+    'Follow Up 3 Date': 'followUp3Date',
+    'Follow Up Comments (3)': 'followUpComments3',
+    'Follow Up 4 Date': 'followUp4Date',
+    'Follow Up Comments (4)': 'followUpComments4',
   };
   
   if (headerMap[header]) {
@@ -352,25 +367,43 @@ export async function batchUpdateLeads(leads: Lead[]): Promise<void> {
 
 // Import leads from CSV
 export async function importLeadsFromCSV(
-  csvData: any[],
+  csvData: string,
   columnMapping: Record<string, string>
 ): Promise<void> {
-  // Transform CSV data according to column mapping
-  const transformedLeads = csvData.map(row => {
-    const lead: Record<string, any> = {};
-    
-    Object.entries(columnMapping).forEach(([csvCol, sheetCol]) => {
-      if (row[csvCol] !== undefined) {
-        lead[mapHeaderToKey(sheetCol)] = row[csvCol];
-      }
+  try {
+    // Parse the CSV data using PapaParse
+    const parsedData = Papa.parse(csvData, {
+      header: true,
+      skipEmptyLines: true,
     });
     
-    return lead as Lead;
-  });
-  
-  // Add each lead
-  for (const lead of transformedLeads) {
-    await addLead(lead);
+    if (parsedData.errors && parsedData.errors.length > 0) {
+      console.error('CSV parsing errors:', parsedData.errors);
+      throw new Error('Error parsing CSV: ' + parsedData.errors[0].message);
+    }
+    
+    const rows = parsedData.data as Record<string, string>[];
+    
+    // Transform CSV data according to column mapping
+    const transformedLeads = rows.map(row => {
+      const lead: Record<string, any> = {};
+      
+      Object.entries(columnMapping).forEach(([csvCol, sheetCol]) => {
+        if (row[csvCol] !== undefined) {
+          lead[mapHeaderToKey(sheetCol)] = row[csvCol];
+        }
+      });
+      
+      return lead as Lead;
+    });
+    
+    // Add each lead
+    for (const lead of transformedLeads) {
+      await addLead(lead);
+    }
+  } catch (error) {
+    console.error('Error importing leads from CSV:', error);
+    throw error;
   }
 }
 
