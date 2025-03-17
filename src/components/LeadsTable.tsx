@@ -16,16 +16,47 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useLeads } from '@/contexts/LeadContext';
-import { MoreHorizontal, ArrowUpDown, Edit, Trash2, Eye, FileText, Phone, Mail } from 'lucide-react';
+import { 
+  MoreHorizontal, 
+  ArrowUpDown, 
+  Edit, 
+  Trash2, 
+  Eye, 
+  FileText, 
+  Phone, 
+  Mail,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  HelpCircle,
+  Zap,
+  Globe,
+  LinkedinIcon,
+  FacebookIcon,
+  Twitter,
+  Instagram,
+  Megaphone,
+  FilePlus2,
+  UserPlus,
+  Locate
+} from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { formatDate } from '@/lib/utils';
 
-export const LeadsTable = () => {
+interface LeadsTableProps {
+  onLeadClick: (lead: any) => void;
+  selectedLeads: string[];
+  setSelectedLeads: (leadIds: string[]) => void;
+}
+
+export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads }: LeadsTableProps) => {
   const { 
     filteredLeads, 
     loading, 
@@ -33,7 +64,8 @@ export const LeadsTable = () => {
     setSortConfig,
     page,
     pageSize,
-    deleteLead
+    deleteLead,
+    setPageSize
   } = useLeads();
 
   const startIndex = (page - 1) * pageSize;
@@ -67,8 +99,20 @@ export const LeadsTable = () => {
     toast.info("View details functionality coming soon");
   };
 
-  const handleEditLead = (id: string) => {
-    toast.info("Edit lead functionality coming soon");
+  const handleSelectAllLeads = (checked: boolean) => {
+    if (checked) {
+      setSelectedLeads(paginatedLeads.map(lead => lead.id));
+    } else {
+      setSelectedLeads([]);
+    }
+  };
+
+  const handleSelectLead = (leadId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedLeads([...selectedLeads, leadId]);
+    } else {
+      setSelectedLeads(selectedLeads.filter(id => id !== leadId));
+    }
   };
 
   // Sample data for demonstration if no real data is available
@@ -83,7 +127,8 @@ export const LeadsTable = () => {
       status: 'Hot',
       createdAt: '2023-09-15',
       center: 'Downtown',
-      stage: 'Qualification'
+      stage: 'Qualification',
+      remarks: 'Interested in premium package'
     },
     {
       id: 'lead-2',
@@ -95,7 +140,8 @@ export const LeadsTable = () => {
       status: 'Cold',
       createdAt: '2023-09-10',
       center: 'Uptown',
-      stage: 'Needs Analysis'
+      stage: 'Needs Analysis',
+      remarks: 'Follow up in 2 weeks'
     },
     {
       id: 'lead-3',
@@ -107,7 +153,8 @@ export const LeadsTable = () => {
       status: 'Warm',
       createdAt: '2023-09-05',
       center: 'Midtown',
-      stage: 'Proposal'
+      stage: 'Proposal',
+      remarks: 'Sent proposal, awaiting feedback'
     },
     {
       id: 'lead-4',
@@ -119,7 +166,8 @@ export const LeadsTable = () => {
       status: 'Converted',
       createdAt: '2023-08-28',
       center: 'Downtown',
-      stage: 'Closed Won'
+      stage: 'Closed Won',
+      remarks: 'Successfully converted to customer'
     },
     {
       id: 'lead-5',
@@ -131,7 +179,8 @@ export const LeadsTable = () => {
       status: 'Hot',
       createdAt: '2023-09-18',
       center: 'Uptown',
-      stage: 'Qualification'
+      stage: 'Qualification',
+      remarks: 'Very interested in our services'
     }
   ];
 
@@ -172,20 +221,83 @@ export const LeadsTable = () => {
       .substring(0, 2);
   };
 
+  const getStageIcon = (stage: string) => {
+    switch(stage) {
+      case 'Qualification':
+        return <HelpCircle className="h-4 w-4 text-blue-500" />;
+      case 'Needs Analysis':
+        return <AlertCircle className="h-4 w-4 text-orange-500" />;
+      case 'Proposal':
+        return <FilePlus2 className="h-4 w-4 text-purple-500" />;
+      case 'Negotiation':
+        return <Zap className="h-4 w-4 text-amber-500" />;
+      case 'Closed Won':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'Closed Lost':
+        return <Trash2 className="h-4 w-4 text-red-500" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getSourceIcon = (source: string) => {
+    switch(source) {
+      case 'Website':
+        return <Globe className="h-4 w-4 text-blue-500" />;
+      case 'Referral':
+        return <UserPlus className="h-4 w-4 text-green-500" />;
+      case 'Social Media':
+        return <Twitter className="h-4 w-4 text-sky-500" />;
+      case 'LinkedIn':
+        return <LinkedinIcon className="h-4 w-4 text-blue-700" />;
+      case 'Facebook':
+        return <FacebookIcon className="h-4 w-4 text-blue-600" />;
+      case 'Instagram':
+        return <Instagram className="h-4 w-4 text-pink-600" />;
+      case 'Event':
+        return <Locate className="h-4 w-4 text-purple-500" />;
+      case 'Advertisement':
+        return <Megaphone className="h-4 w-4 text-red-500" />;
+      default:
+        return <Globe className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch(status) {
+      case 'Hot':
+        return <Zap className="h-4 w-4 text-red-500" />;
+      case 'Warm':
+        return <Clock className="h-4 w-4 text-amber-500" />;
+      case 'Cold':
+        return <AlertCircle className="h-4 w-4 text-blue-500" />;
+      case 'Converted':
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      default:
+        return <HelpCircle className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
   return (
-    <Card className="shadow-md border-border/30 overflow-hidden">
+    <Card className="shadow-md border-border/30 overflow-hidden glass-card">
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-muted/30">
+            <TableHeader className="bg-muted/30 sticky top-0 z-10">
               <TableRow>
-                <TableHead className="w-[50px]">#</TableHead>
+                <TableHead className="w-[50px]">
+                  <Checkbox 
+                    checked={selectedLeads.length === displayLeads.length && displayLeads.length > 0}
+                    onCheckedChange={handleSelectAllLeads}
+                    aria-label="Select all leads"
+                  />
+                </TableHead>
                 <TableHead className="min-w-[200px]">
                   <div 
                     className="flex items-center cursor-pointer"
                     onClick={() => handleSort('fullName')}
                   >
-                    Lead
+                    Full Name
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
@@ -198,12 +310,30 @@ export const LeadsTable = () => {
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
+                <TableHead className="min-w-[120px]">
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    Created
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </div>
+                </TableHead>
                 <TableHead className="min-w-[150px]">
                   <div 
                     className="flex items-center cursor-pointer"
                     onClick={() => handleSort('associate')}
                   >
                     Associate
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </div>
+                </TableHead>
+                <TableHead className="min-w-[140px]">
+                  <div 
+                    className="flex items-center cursor-pointer"
+                    onClick={() => handleSort('stage')}
+                  >
+                    Stage
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
@@ -216,12 +346,12 @@ export const LeadsTable = () => {
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
-                <TableHead className="min-w-[120px]">
+                <TableHead className="min-w-[200px]">
                   <div 
                     className="flex items-center cursor-pointer"
-                    onClick={() => handleSort('createdAt')}
+                    onClick={() => handleSort('remarks')}
                   >
-                    Created
+                    Remarks
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                   </div>
                 </TableHead>
@@ -233,15 +363,20 @@ export const LeadsTable = () => {
                 displayLeads.map((lead, index) => (
                   <TableRow 
                     key={lead.id} 
-                    className="h-[60px] hover:bg-muted/20 transition-colors"
+                    className="h-[60px] hover:bg-muted/20 transition-colors cursor-pointer"
+                    onClick={() => onLeadClick(lead)}
                   >
-                    <TableCell className="font-medium text-muted-foreground">
-                      {startIndex + index + 1}
+                    <TableCell className="font-medium text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+                      <Checkbox 
+                        checked={selectedLeads.includes(lead.id)}
+                        onCheckedChange={(checked) => handleSelectLead(lead.id, checked === true)}
+                        aria-label={`Select lead ${lead.fullName}`}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 border">
-                          <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-medium">
                             {getInitials(lead.fullName)}
                           </AvatarFallback>
                         </Avatar>
@@ -265,14 +400,20 @@ export const LeadsTable = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10">
-                        {lead.source}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        {getSourceIcon(lead.source)}
+                        <Badge variant="outline" className="bg-primary/5 hover:bg-primary/10">
+                          {lead.source}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {formatDate(lead.createdAt)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className="bg-secondary text-secondary-foreground text-xs">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white text-xs">
                             {getInitials(lead.associate)}
                           </AvatarFallback>
                         </Avatar>
@@ -280,20 +421,28 @@ export const LeadsTable = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge 
-                        variant={getStatusColor(lead.status)}
-                        className="font-medium"
-                      >
-                        {lead.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span>{new Date(lead.createdAt).toLocaleDateString()}</span>
-                        <span className="text-xs text-muted-foreground">{lead.stage}</span>
+                      <div className="flex items-center gap-2">
+                        {getStageIcon(lead.stage)}
+                        <span>{lead.stage}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(lead.status)}
+                        <Badge 
+                          variant={getStatusColor(lead.status)}
+                          className="font-medium"
+                        >
+                          {lead.status}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="max-w-[200px] truncate">
+                        {lead.remarks || "No remarks"}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Open menu">
@@ -303,13 +452,13 @@ export const LeadsTable = () => {
                         <DropdownMenuContent align="end" className="w-56">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => onLeadClick(lead)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit Lead
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleViewDetails(lead.id)}>
                             <Eye className="mr-2 h-4 w-4" />
                             View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditLead(lead.id)}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit Lead
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleViewDetails(lead.id)}>
                             <FileText className="mr-2 h-4 w-4" />
@@ -330,7 +479,7 @@ export const LeadsTable = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
                     No leads found
                   </TableCell>
                 </TableRow>
