@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Utility function to format dates for display
-export function formatDate(dateString: string): string {
+export function formatDate(dateString: string, formatString: string = 'MMM d, yyyy'): string {
   if (!dateString) return '';
   
   try {
@@ -32,13 +32,47 @@ export function formatDate(dateString: string): string {
     
     // If the date is valid, format it
     if (!isNaN(date.getTime())) {
-      return format(date, 'MMM d, yyyy');
+      return format(date, formatString);
     }
     
     return dateString;
   } catch (error) {
     console.error('Error formatting date:', error);
     return dateString;
+  }
+}
+
+// Parse dates from string to Date object
+export function parseDate(dateString: string): Date | null {
+  if (!dateString) return null;
+  
+  try {
+    // Try to parse with different formats
+    let date: Date;
+    
+    if (dateString.includes('T')) {
+      // ISO format
+      date = new Date(dateString);
+    } else if (dateString.includes('-')) {
+      // YYYY-MM-DD format
+      date = parse(dateString, 'yyyy-MM-dd', new Date());
+    } else if (dateString.includes('/')) {
+      // MM/DD/YYYY format
+      date = parse(dateString, 'MM/dd/yyyy', new Date());
+    } else {
+      // Try as timestamp
+      date = new Date(Number(dateString));
+    }
+    
+    // If the date is valid, return it
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error parsing date:', error);
+    return null;
   }
 }
 
@@ -71,6 +105,11 @@ export function formatCurrency(value: number, currency = 'INR'): string {
     currency,
     maximumFractionDigits: 0
   }).format(value);
+}
+
+// Format number with thousands separators
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat('en-IN').format(value);
 }
 
 // Calculate percentage change
