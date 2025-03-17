@@ -69,8 +69,8 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {Array(8).fill(0).map((_, index) => (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {Array(6).fill(0).map((_, index) => (
           <Card key={index} className="shadow-md animate-pulse">
             <CardHeader className="pb-2">
               <Skeleton className="h-6 w-3/4" />
@@ -124,23 +124,24 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {paginatedLeads.length > 0 ? (
         paginatedLeads.map(lead => (
           <Card
             key={lead.id}
-            className="lead-card shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden" 
+            className="lead-card shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden border-border/40 backdrop-blur-sm hover:bg-card/80"
+            onClick={() => onLeadClick(lead)}
           >
-            <div className={`h-1 w-full ${
-              lead.status === 'Hot' ? 'bg-red-500' :
-              lead.status === 'Warm' ? 'bg-amber-500' :
-              lead.status === 'Cold' ? 'bg-blue-500' :
-              lead.status === 'Converted' ? 'bg-green-500' :
-              'bg-gray-300'
+            <div className={`h-1.5 w-full ${
+              lead.status === 'Hot' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+              lead.status === 'Warm' ? 'bg-gradient-to-r from-amber-500 to-yellow-500' :
+              lead.status === 'Cold' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+              lead.status === 'Converted' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+              'bg-gradient-to-r from-gray-300 to-gray-400'
             }`}></div>
             <CardHeader className="pb-2 flex flex-row justify-between items-start space-y-0 pt-4">
               <div className="flex items-center gap-2">
-                <Avatar className="h-9 w-9 border">
+                <Avatar className="h-10 w-10 border shadow-sm">
                   <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-medium">
                     {getInitials(lead.fullName)}
                   </AvatarFallback>
@@ -159,8 +160,8 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
                 </div>
               </div>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0" aria-label="Open menu">
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-muted" aria-label="Open menu">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -192,7 +193,7 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
-            <CardContent className="space-y-2 pt-2">
+            <CardContent className="space-y-3 pt-2">
               <div className="grid grid-cols-1 gap-1">
                 {lead.email && (
                   <div className="flex items-center text-sm">
@@ -211,26 +212,63 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
                   <span>{formatDate(lead.createdAt)}</span>
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t text-sm">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-muted-foreground">Source:</span>
-                  <Badge variant="outline" className="bg-primary/5">
+              <div className="pt-3 border-t border-border/30 text-sm">
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-muted-foreground text-xs">Source:</span>
+                  <Badge variant="outline" className="bg-primary/5 text-xs">
                     {lead.source}
                   </Badge>
                 </div>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-muted-foreground">Stage:</span>
-                  <span className="font-medium">{lead.stage}</span>
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="text-muted-foreground text-xs">Stage:</span>
+                  <span className="font-medium text-sm">{lead.stage}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">Associate:</span>
-                  <span className="font-medium">{lead.associate}</span>
+                  <span className="text-muted-foreground text-xs">Associate:</span>
+                  <span className="font-medium text-sm">{lead.associate}</span>
                 </div>
               </div>
               {lead.remarks && (
-                <div className="mt-3 pt-3 border-t">
+                <div className="pt-3 border-t border-border/30">
                   <p className="text-xs text-muted-foreground">Remarks:</p>
                   <p className="text-sm mt-1 line-clamp-2">{lead.remarks}</p>
+                </div>
+              )}
+              
+              {/* Follow-up Section */}
+              {(lead.followUp1Date || lead.followUp2Date || lead.followUp3Date || lead.followUp4Date) && (
+                <div className="pt-3 border-t border-border/30">
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-xs text-muted-foreground font-medium">
+                      Follow-up History
+                    </summary>
+                    <div className="mt-2 space-y-2">
+                      {lead.followUp1Date && (
+                        <div className="bg-muted/40 p-2 rounded-md text-xs">
+                          <div className="font-medium">{formatDate(lead.followUp1Date)}</div>
+                          <p className="mt-0.5">{lead.followUp1Comments || "No comments"}</p>
+                        </div>
+                      )}
+                      {lead.followUp2Date && (
+                        <div className="bg-muted/40 p-2 rounded-md text-xs">
+                          <div className="font-medium">{formatDate(lead.followUp2Date)}</div>
+                          <p className="mt-0.5">{lead.followUp2Comments || "No comments"}</p>
+                        </div>
+                      )}
+                      {lead.followUp3Date && (
+                        <div className="bg-muted/40 p-2 rounded-md text-xs">
+                          <div className="font-medium">{formatDate(lead.followUp3Date)}</div>
+                          <p className="mt-0.5">{lead.followUp3Comments || "No comments"}</p>
+                        </div>
+                      )}
+                      {lead.followUp4Date && (
+                        <div className="bg-muted/40 p-2 rounded-md text-xs">
+                          <div className="font-medium">{formatDate(lead.followUp4Date)}</div>
+                          <p className="mt-0.5">{lead.followUp4Comments || "No comments"}</p>
+                        </div>
+                      )}
+                    </div>
+                  </details>
                 </div>
               )}
             </CardContent>
@@ -238,8 +276,11 @@ export function LeadsCardView({ onLeadClick }: LeadsCardViewProps) {
               <Button 
                 variant="secondary" 
                 size="sm" 
-                className="w-full gap-2"
-                onClick={() => onLeadClick(lead)}
+                className="w-full gap-2 hover:bg-primary hover:text-primary-foreground"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onLeadClick(lead);
+                }}
               >
                 <Edit className="h-4 w-4" />
                 <span>Edit Lead</span>

@@ -103,13 +103,14 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
       return getStatusColor(group);
     }
     
+    // Enhanced color palette for group headers
     const colors = [
-      'from-indigo-500 to-purple-500',
-      'from-blue-500 to-indigo-500',
-      'from-cyan-500 to-blue-500',
-      'from-emerald-500 to-green-500',
-      'from-amber-500 to-orange-500',
-      'from-rose-500 to-pink-500'
+      'from-indigo-600 to-purple-600',
+      'from-sky-600 to-indigo-600',
+      'from-emerald-600 to-teal-600',
+      'from-amber-600 to-orange-600',
+      'from-fuchsia-600 to-pink-600',
+      'from-violet-600 to-indigo-600'
     ];
     
     const index = group.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length;
@@ -145,9 +146,11 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     const followUps = [];
     for (let i = 1; i <= 4; i++) {
       const dateField = `followUp${i}Date`;
+      const commentField = `followUp${i}Comments`;
       if (lead[dateField]) {
         followUps.push({
           date: lead[dateField],
+          comment: lead[commentField] || '',
           index: i
         });
       }
@@ -173,12 +176,21 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     );
   }
   
+  // Limit the number of columns displayed to 3 at most
+  const visibleGroups = sortedGroups.slice(0, 3);
+  const hasMoreGroups = sortedGroups.length > 3;
+  
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Grip className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Kanban Board</h2>
+          {hasMoreGroups && (
+            <Badge variant="outline" className="ml-2">
+              {sortedGroups.length - 3} more groups not shown
+            </Badge>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
@@ -197,13 +209,13 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
         </div>
       </div>
       
-      <div className="kanban-board flex gap-4 pb-4 pt-1 min-h-[500px] overflow-x-auto fancy-scrollbar">
-        {sortedGroups.map(group => (
-          <div key={group} className="kanban-column min-w-[280px] w-[280px] flex flex-col">
-            <div className={`sticky top-0 z-10 bg-gradient-to-r ${getGroupColor(group)} p-3 rounded-t-md text-white shadow-md`}>
+      <div className="kanban-board grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-4 pt-1">
+        {visibleGroups.map(group => (
+          <div key={group} className="kanban-column flex flex-col rounded-md overflow-hidden shadow-md border border-border/60">
+            <div className={`sticky top-0 z-10 bg-gradient-to-r ${getGroupColor(group)} p-4 rounded-t-md text-white shadow-md`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium">{group || 'Undefined'}</h3>
+                  <h3 className="text-base font-medium">{group || 'Undefined'}</h3>
                   <Badge className="bg-white/30 text-white hover:bg-white/40">
                     {groupedLeads[group].length}
                   </Badge>
@@ -215,7 +227,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
               </div>
             </div>
             
-            <div className="flex-1 space-y-3 p-3 bg-muted/20 rounded-b-md overflow-y-auto max-h-[80vh]">
+            <div className="flex-1 space-y-3 p-4 bg-card rounded-b-md overflow-y-auto max-h-[70vh]">
               {groupedLeads[group].map(lead => (
                 <Card 
                   key={lead.id} 
@@ -290,18 +302,27 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
                       )}
                     </div>
                     
+                    {/* Follow-up Section */}
                     {getFollowUpBadges(lead).length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {getFollowUpBadges(lead).map((followUp, idx) => (
-                          <Badge 
-                            key={idx}
-                            variant="outline" 
-                            className="text-xs flex items-center gap-1 bg-green-50 text-green-700 border-green-200 dark:bg-green-950/20 dark:text-green-400 dark:border-green-900/40"
-                          >
-                            <CalendarCheck className="h-3 w-3" />
-                            <span>Follow-up {followUp.index}: {formatDate(followUp.date)}</span>
-                          </Badge>
-                        ))}
+                      <div className="mt-2">
+                        <details className="text-xs">
+                          <summary className="cursor-pointer text-muted-foreground font-medium">
+                            Follow-ups ({getFollowUpBadges(lead).length})
+                          </summary>
+                          <div className="mt-2 space-y-2 bg-muted/30 p-2 rounded-md">
+                            {getFollowUpBadges(lead).map((followUp, idx) => (
+                              <div key={idx} className="text-xs flex flex-col">
+                                <div className="flex items-center gap-1 font-medium">
+                                  <CalendarCheck className="h-3 w-3 text-green-600" />
+                                  <span>Follow-up {followUp.index}: {formatDate(followUp.date)}</span>
+                                </div>
+                                {followUp.comment && (
+                                  <p className="ml-4 text-muted-foreground mt-0.5">{followUp.comment}</p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </details>
                       </div>
                     )}
                     
