@@ -190,9 +190,11 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   // Function to refresh data
   const fetchData = useCallback(async () => {
+    console.log('Starting data fetch...');
     setLoading(true);
     try {
       const data = await fetchLeads();
+      console.log('Data fetched successfully, leads count:', data.length);
       setLeads(data);
       
       // Initialize visible columns if not set
@@ -206,10 +208,12 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       setError(null);
     } catch (err) {
+      console.error('Error fetching leads:', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch leads'));
       toast.error('Failed to fetch leads data');
     } finally {
       setLoading(false);
+      console.log('Data fetch complete, loading state set to false');
     }
   }, [settings.visibleColumns.length]);
   
@@ -226,12 +230,14 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   
   // Initial data fetch
   useEffect(() => {
+    console.log('Initial data fetch triggered');
     fetchData();
   }, [fetchData]);
   
   // Update lead
   const handleUpdateLead = async (lead: Lead) => {
     try {
+      console.log('Updating lead:', lead.id);
       // Optimistic update
       setLeads(currentLeads =>
         currentLeads.map(l => (l.id === lead.id ? lead : l))
@@ -241,6 +247,7 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await updateLead(lead);
       toast.success('Lead updated successfully');
     } catch (err) {
+      console.error('Error updating lead:', err);
       setError(err instanceof Error ? err : new Error('Failed to update lead'));
       toast.error('Failed to update lead');
       
@@ -252,6 +259,7 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Add new lead
   const handleAddLead = async (lead: Lead) => {
     try {
+      console.log('Adding new lead');
       // Save to Google Sheets
       await addLead(lead);
       
@@ -259,6 +267,7 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await fetchData();
       toast.success('Lead added successfully');
     } catch (err) {
+      console.error('Error adding lead:', err);
       setError(err instanceof Error ? err : new Error('Failed to add lead'));
       toast.error('Failed to add lead');
     }
@@ -267,6 +276,7 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Delete lead
   const handleDeleteLead = async (leadId: string) => {
     try {
+      console.log('Deleting lead:', leadId);
       // Optimistic delete
       setLeads(currentLeads => currentLeads.filter(l => l.id !== leadId));
       
@@ -274,6 +284,7 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       await deleteLead(leadId);
       toast.success('Lead deleted successfully');
     } catch (err) {
+      console.error('Error deleting lead:', err);
       setError(err instanceof Error ? err : new Error('Failed to delete lead'));
       toast.error('Failed to delete lead');
       
@@ -444,6 +455,12 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Compute filtered and sorted leads
   const filteredLeads = applySorting(applyFilters(leads, filters), sortConfig);
   
+  // Get unique count of leads by email
+  const getUniqueLeadsCount = useCallback((leads: Lead[]): number => {
+    const uniqueEmails = new Set(leads.map(lead => lead.email));
+    return uniqueEmails.size;
+  }, []);
+  
   // Calculate statistics
   const statusCounts = countByKey(filteredLeads, 'status');
   const sourceStats = countByKey(filteredLeads, 'source');
@@ -457,9 +474,9 @@ export const LeadProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const ltv = convertedLeadsCount * avgLeadValue;
   
   // Calculate conversion rate based on unique leads
-  const uniqueLeadEmails = new Set(filteredLeads.map(lead => lead.email));
-  const conversionRate = uniqueLeadEmails.size > 0 
-    ? (convertedLeadsCount / uniqueLeadEmails.size) * 100 
+  const uniqueLeadsCount = getUniqueLeadsCount(filteredLeads);
+  const conversionRate = uniqueLeadsCount > 0 
+    ? (convertedLeadsCount / uniqueLeadsCount) * 100 
     : 0;
   
   // Get options for filters

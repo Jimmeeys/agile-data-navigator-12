@@ -135,91 +135,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
     }
   };
 
-  const sampleLeads = [
-    {
-      id: 'lead-1',
-      fullName: 'John Smith',
-      email: 'johnsmith@example.com',
-      phone: '(555) 123-4567',
-      source: 'Website',
-      associate: 'Sarah Johnson',
-      status: 'Hot',
-      createdAt: '2023-09-15',
-      center: 'Downtown',
-      stage: 'Qualification',
-      remarks: 'Interested in premium package'
-    },
-    {
-      id: 'lead-2',
-      fullName: 'Emma Wilson',
-      email: 'emma.wilson@example.com',
-      phone: '(555) 987-6543',
-      source: 'Referral',
-      associate: 'Mike Chen',
-      status: 'Cold',
-      createdAt: '2023-09-10',
-      center: 'Uptown',
-      stage: 'Needs Analysis',
-      remarks: 'Follow up in 2 weeks'
-    },
-    {
-      id: 'lead-3',
-      fullName: 'Robert Johnson',
-      email: 'robert.j@example.com',
-      phone: '(555) 333-2222',
-      source: 'Social Media',
-      associate: 'Lisa Wong',
-      status: 'Warm',
-      createdAt: '2023-09-05',
-      center: 'Midtown',
-      stage: 'Proposal',
-      remarks: 'Sent proposal, awaiting feedback'
-    },
-    {
-      id: 'lead-4',
-      fullName: 'Michael Brown',
-      email: 'mbrown@example.com',
-      phone: '(555) 444-5555',
-      source: 'Event',
-      associate: 'Sarah Johnson',
-      status: 'Converted',
-      createdAt: '2023-08-28',
-      center: 'Downtown',
-      stage: 'Closed Won',
-      remarks: 'Successfully converted to customer'
-    },
-    {
-      id: 'lead-5',
-      fullName: 'Jennifer Lee',
-      email: 'jlee@example.com',
-      phone: '(555) 777-8888',
-      source: 'Website',
-      associate: 'Mike Chen',
-      status: 'Hot',
-      createdAt: '2023-09-18',
-      center: 'Uptown',
-      stage: 'Qualification',
-      remarks: 'Very interested in our services'
-    }
-  ];
-
-  const displayLeads = paginatedLeads.length > 0 ? paginatedLeads : sampleLeads;
-
-  if (loading) {
-    return (
-      <Card className="shadow-md border-border/30">
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <Skeleton className="h-8 w-full" />
-            {Array(5).fill(0).map((_, index) => (
-              <Skeleton key={index} className="h-16 w-full rounded-md" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // Status color mapping
   const getStatusColor = (status: string) => {
     switch(status) {
       case 'Converted': return 'success';
@@ -353,6 +269,23 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
 
   const rowHeightClass = compactMode ? "h-[48px]" : "h-[60px]";
 
+  console.log('LeadsTable rendering with leads:', paginatedLeads.length);
+
+  if (loading) {
+    return (
+      <Card className="shadow-md border-border/30">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-full" />
+            {Array(5).fill(0).map((_, index) => (
+              <Skeleton key={index} className="h-16 w-full rounded-md" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="shadow-md border-border/30 overflow-hidden glass-card">
       <CardContent className="p-0">
@@ -362,7 +295,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
               <TableRow>
                 <TableHead className="w-[50px]">
                   <Checkbox 
-                    checked={selectedLeads.length === displayLeads.length && displayLeads.length > 0}
+                    checked={selectedLeads.length === paginatedLeads.length && paginatedLeads.length > 0}
                     onCheckedChange={handleSelectAllLeads}
                     aria-label="Select all leads"
                   />
@@ -434,11 +367,11 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
               </TableRow>
             </TableHeader>
             <TableBody>
-              {displayLeads.length > 0 ? (
-                displayLeads.map((lead, index) => (
+              {paginatedLeads.length > 0 ? (
+                paginatedLeads.map((lead, index) => (
                   <TableRow 
                     key={lead.id} 
-                    className={`${rowHeightClass} hover:bg-muted/20 transition-colors cursor-pointer`}
+                    className={`${rowHeightClass} hover:bg-muted/20 transition-colors cursor-pointer whitespace-nowrap`}
                     onClick={() => onLeadClick(lead)}
                   >
                     <TableCell className="font-medium text-muted-foreground" onClick={(e) => e.stopPropagation()}>
@@ -560,7 +493,7 @@ export const LeadsTable = ({ onLeadClick, selectedLeads, setSelectedLeads, compa
               ) : (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
-                    No leads found
+                    No leads found. {filteredLeads.length > 0 ? "Try adjusting your filters or pagination." : "Add some leads to get started."}
                   </TableCell>
                 </TableRow>
               )}

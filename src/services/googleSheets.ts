@@ -1,3 +1,4 @@
+
 import { delay } from '@/lib/utils';
 import Papa from 'papaparse';
 
@@ -458,11 +459,13 @@ export const fetchLeads = async (): Promise<Lead[]> => {
   
   // In production, this would be an API call to fetch leads from Google Sheets
   // For now, return the mock data
+  console.log('Fetching leads from service...', currentLeads.length);
   return currentLeads;
 };
 
 // Function to update a lead
 export const updateLead = async (lead: Lead): Promise<Lead> => {
+  console.log('Updating lead in service:', lead.id);
   // Simulate API delay
   await delay(600);
   
@@ -475,6 +478,7 @@ export const updateLead = async (lead: Lead): Promise<Lead> => {
   }
   
   currentLeads[index] = { ...lead };
+  console.log('Lead updated successfully');
   
   return lead;
 };
@@ -488,6 +492,7 @@ export const debouncedUpdateLead = async (lead: Lead): Promise<Lead> => {
 
 // Function to add a new lead
 export const addLead = async (lead: Lead): Promise<Lead> => {
+  console.log('Adding new lead to service');
   // Simulate API delay
   await delay(800);
   
@@ -500,12 +505,14 @@ export const addLead = async (lead: Lead): Promise<Lead> => {
   };
   
   currentLeads = [...currentLeads, newLead];
+  console.log('New lead added successfully');
   
   return newLead;
 };
 
 // Function to delete a lead
 export const deleteLead = async (leadId: string): Promise<void> => {
+  console.log('Deleting lead from service:', leadId);
   // Simulate API delay
   await delay(600);
   
@@ -518,6 +525,7 @@ export const deleteLead = async (leadId: string): Promise<void> => {
   }
   
   currentLeads = [...currentLeads.slice(0, index), ...currentLeads.slice(index + 1)];
+  console.log('Lead deleted successfully');
 };
 
 // Function to parse CSV data using PapaParse
@@ -564,6 +572,7 @@ export const parseCSV = (file: File): Promise<any[]> => {
 // Function to import leads from CSV
 export const importLeadsFromCSV = async (csvString: string, columnMapping: Record<string, string>): Promise<void> => {
   try {
+    console.log('Importing leads from CSV');
     // Parse CSV string
     const results = Papa.parse(csvString, {
       header: true,
@@ -599,6 +608,7 @@ export const importLeadsFromCSV = async (csvString: string, columnMapping: Recor
       currentLeads.push(lead as Lead);
     }
     
+    console.log(`${mappedLeads.length} leads imported successfully`);
     return;
   } catch (error) {
     console.error('Error importing CSV:', error);
