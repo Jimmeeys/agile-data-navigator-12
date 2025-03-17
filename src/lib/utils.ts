@@ -8,6 +8,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Delay function
+export const delay = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
 // Format a date string to a readable format
 export function formatDate(dateString: string | Date, formatStr: string = "MMM dd, yyyy") {
   try {

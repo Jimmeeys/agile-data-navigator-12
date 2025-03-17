@@ -1,6 +1,8 @@
-
 import { delay } from '@/lib/utils';
 import Papa from 'papaparse';
+
+// Helper function for artificial delay (for demo purposes)
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Lead interface with follow-up fields
 export interface Lead {
@@ -560,4 +562,49 @@ export const parseCSV = (file: File): Promise<any[]> => {
       }
     });
   });
+};
+
+// Function to import leads from CSV
+export const importLeadsFromCSV = async (csvString: string, columnMapping: Record<string, string>): Promise<void> => {
+  try {
+    // Parse CSV string
+    const results = Papa.parse(csvString, {
+      header: true,
+      skipEmptyLines: true,
+    });
+    
+    if (results.errors.length > 0) {
+      throw new Error(results.errors[0].message);
+    }
+    
+    // Map CSV data to lead format based on columnMapping
+    const mappedLeads = results.data.map((row: any, index: number) => {
+      const lead: Partial<Lead> = {
+        id: `imported-${Date.now()}-${index}`,
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+      
+      // Map each CSV column to the corresponding lead field based on columnMapping
+      Object.entries(columnMapping).forEach(([csvHeader, leadField]) => {
+        if (row[csvHeader] !== undefined && leadField) {
+          (lead as any)[leadField] = row[csvHeader];
+        }
+      });
+      
+      return lead as Lead;
+    });
+    
+    // Simulate API delay
+    await delay(1000);
+    
+    // Add all mapped leads to the current leads
+    for (const lead of mappedLeads) {
+      currentLeads.push(lead as Lead);
+    }
+    
+    return;
+  } catch (error) {
+    console.error('Error importing CSV:', error);
+    throw error;
+  }
 };

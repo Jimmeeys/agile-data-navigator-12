@@ -54,7 +54,7 @@ import {
   Landmark,
   BookX,
   UserX,
-  Language,
+  Languages,
   PhoneOff,
   DollarSign,
   Calendar,
