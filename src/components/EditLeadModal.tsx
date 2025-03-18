@@ -31,11 +31,7 @@ import {
   User,
   MessageSquare,
   CalendarCheck,
-  CalendarClock,
-  Bookmark,
-  BookmarkCheck,
-  FileEdit,
-  Clock
+  Badge
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
