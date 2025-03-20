@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useLeads } from '@/contexts/LeadContext';
 import { Card, CardContent } from '@/components/ui/card';
@@ -44,7 +43,7 @@ interface LeadsKanbanViewProps {
 
 export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
   const { filteredLeads, loading, settings, updateSettings } = useLeads();
-  const [groupByField, setGroupByField] = useState<string>(settings.kanbanGroupBy || 'status');
+  const [groupByField, setGroupByField] = useState<string>(settings.kanbanGroupBy || 'source');
   
   const groupByOptions = [
     { value: 'status', label: 'Status' },
@@ -64,19 +63,7 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     });
   };
   
-  const sortedGroups = Object.keys(groupedLeads).sort((a, b) => {
-    if (groupByField === 'status') {
-      const statusPriority: Record<string, number> = {
-        'Hot': 1,
-        'Warm': 2,
-        'Cold': 3,
-        'Converted': 4,
-        'Lost': 5
-      };
-      return (statusPriority[a] || 99) - (statusPriority[b] || 99);
-    }
-    return a.localeCompare(b);
-  });
+  const sortedGroups = Object.keys(groupedLeads).sort((a, b) => a.localeCompare(b));
   
   const getInitials = (name: string): string => {
     if (!name) return 'NA';
@@ -176,21 +163,12 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
     );
   }
   
-  // Limit the number of columns displayed to 3 at most
-  const visibleGroups = sortedGroups.slice(0, 3);
-  const hasMoreGroups = sortedGroups.length > 3;
-  
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Grip className="h-5 w-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Kanban Board</h2>
-          {hasMoreGroups && (
-            <Badge variant="outline" className="ml-2">
-              {sortedGroups.length - 3} more groups not shown
-            </Badge>
-          )}
         </div>
         
         <div className="flex items-center gap-2">
@@ -209,8 +187,8 @@ export function LeadsKanbanView({ onLeadClick }: LeadsKanbanViewProps) {
         </div>
       </div>
       
-      <div className="kanban-board grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-4 pt-1">
-        {visibleGroups.map(group => (
+      <div className="kanban-board grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4 pt-1">
+        {sortedGroups.map(group => (
           <div key={group} className="kanban-column flex flex-col rounded-md overflow-hidden shadow-md border border-border/60">
             <div className={`sticky top-0 z-10 bg-gradient-to-r ${getGroupColor(group)} p-4 rounded-t-md text-white shadow-md`}>
               <div className="flex items-center justify-between">
