@@ -86,14 +86,13 @@ const Index = () => {
       center: "",
       remarks: ""
     };
-
-    const openExpirationsManager = () => {
-      window.open('https://expirations-manager.netlify.app/', '_blank');
-    };
-    
     
     setSelectedLead(newLead);
     setEditModalOpen(true);
+  };
+
+  const openExpirationsManager = () => {
+    window.open('https://expirations-manager.netlify.app/', '_blank');
   };
 
   const handleViewChange = (view: string) => {
@@ -176,15 +175,19 @@ const Index = () => {
             </Button>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
+          <a 
+            href="https://expirations-manager.netlify.app/" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full sm:w-auto gap-2"
+          >
+            <ExternalLink className="h-4 w-4 mr-1" />
+            Expirations Manager
+          </a>
             <Button 
-              variant="outline"
-              className="gap-2 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
-              onClick={openExpirationsManager}
+              className="w-full sm:w-auto gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all"
+              onClick={handleAddNewLead}
             >
-              <ExternalLink className="h-4 w-4" />
-              <span>Expirations Manager</span>
-            </Button>
-            <Button className="w-full sm:w-auto gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all">
               <Plus className="h-4 w-4" />
               <span>Add New Lead</span>
             </Button>
