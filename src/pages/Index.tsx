@@ -22,7 +22,8 @@ import {
   Filter,
   SlidersHorizontal,
   Eye,
-  EyeOff
+  EyeOff,
+  ExternalLink
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { SearchBar } from "@/components/SearchBar";
@@ -85,6 +86,11 @@ const Index = () => {
       center: "",
       remarks: ""
     };
+
+    const openExpirationsManager = () => {
+      window.open('https://expirations-manager.netlify.app/', '_blank');
+    };
+    
     
     setSelectedLead(newLead);
     setEditModalOpen(true);
@@ -169,11 +175,22 @@ const Index = () => {
               <span>Filters</span>
             </Button>
           </div>
-          <Button className="w-full sm:w-auto gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all">
-            <Plus className="h-4 w-4" />
-            <span>Add New Lead</span>
-          </Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              variant="outline"
+              className="gap-2 border-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+              onClick={openExpirationsManager}
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span>Expirations Manager</span>
+            </Button>
+            <Button className="w-full sm:w-auto gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 transition-all">
+              <Plus className="h-4 w-4" />
+              <span>Add New Lead</span>
+            </Button>
+          </div>
         </div>
+
       </div>
 
       {showFilters && (
